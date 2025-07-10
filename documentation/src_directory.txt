@@ -1,0 +1,14 @@
+src/
+├── components/
+│   ├── AnalysisPanel.tsx      # NEW: A container for the right-side analysis tabs
+│   ├── DocumentPreview.tsx
+│   ├── KeyPoints.tsx
+│   ├── Questions.tsx
+│   ├── SummaryDisplay.tsx
+│   ├── TTSPanel.tsx
+│   └── UploadForm.tsx
+├── pages/
+│   └── Home.tsx
+├── App.tsx
+├── index.css
+└── main.tsx
