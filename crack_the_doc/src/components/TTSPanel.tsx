@@ -1,6 +1,6 @@
 // src/components/TTSPanel.tsx
-import { useState } from 'react';
-import { Play, Pause, Volume2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Play, Pause, StopCircle, Volume2 } from 'lucide-react';
 
 type Props = {
   textToRead: string;
@@ -8,25 +8,43 @@ type Props = {
 
 const TTSPanel = ({ textToRead }: Props) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  
-  // In a real app, you would use the Web Speech API here.
-  // const synth = window.speechSynthesis;
-  // const utterance = new SpeechSynthesisUtterance(textToRead);
+  const [isPaused, setIsPaused] = useState(false);
+  const synth = window.speechSynthesis;
+
+  useEffect(() => {
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.onend = () => {
+      setIsPlaying(false);
+      setIsPaused(false);
+    };
+
+    return () => {
+      synth.cancel();
+    };
+  }, [textToRead, synth]);
 
   const handlePlayPause = () => {
-    // Mock functionality
-    console.log(isPlaying ? "Pausing speech for:" : "Playing speech for:", textToRead);
-    setIsPlaying(!isPlaying);
-    // Real implementation:
-    // if (isPlaying) {
-    //   synth.pause();
-    // } else {
-    //   if (synth.paused) {
-    //     synth.resume();
-    //   } else {
-    //     synth.speak(utterance);
-    //   }
-    // }
+    if (isPlaying && !isPaused) {
+      synth.pause();
+      setIsPaused(true);
+    } else if (isPaused) {
+      synth.resume();
+      setIsPaused(false);
+    } else {
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+      synth.speak(utterance);
+      setIsPlaying(true);
+    }
+  };
+
+  const handleStop = () => {
+    synth.cancel();
+    setIsPlaying(false);
+    setIsPaused(false);
   };
 
   return (
@@ -34,14 +52,21 @@ const TTSPanel = ({ textToRead }: Props) => {
       <button 
         onClick={handlePlayPause}
         className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        aria-label={isPlaying ? 'Pause' : 'Play'}
+        aria-label={isPlaying && !isPaused ? 'Pause' : 'Play'}
       >
-        {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+        {isPlaying && !isPaused ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+      </button>
+      <button 
+        onClick={handleStop}
+        className="p-2 rounded-full bg-red-600 text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+        aria-label="Stop"
+      >
+        <StopCircle className="w-5 h-5" />
       </button>
       <div className="flex items-center space-x-2 flex-grow">
         <Volume2 className="w-5 h-5 text-gray-500" />
         <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
-          <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: isPlaying ? '45%' : '0%' }}></div>
+          <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: isPlaying ? '100%' : '0%', transition: isPlaying ? `width ${textToRead.length / 10}s linear` : '' }}></div>
         </div>
       </div>
     </div>
