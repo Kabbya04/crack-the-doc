@@ -4,13 +4,17 @@ import ChatPanel from "../components/ChatPanel";
 import AnalysisPanel from "../components/AnalysisPanel";
 import DocumentPreviewModal from "../components/DocumentPreviewModal";
 import mammoth from "mammoth";
+import * as pdfjsLib from "pdfjs-dist";
 import { getSummary, getKeyPoints, getQuestions } from "../lib/groq";
 import { safeJsonParse } from "../lib/utils";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf-worker/pdf.worker.min.js`;
 
 export type DocumentFile = {
   name: string;
   type: "pdf" | "docx" | "md" | "txt" | "markdown";
   content: File | string | ArrayBuffer;
+  textContent: string;
 };
 
 const Home = () => {
@@ -19,6 +23,7 @@ const Home = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [analysis, setAnalysis] = useState({ summary: "", keyPoints: [], questions: [] });
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState(false);
 
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
@@ -26,27 +31,37 @@ const Home = () => {
     let docState: DocumentFile | null = null;
 
     try {
+      let textContent = "";
       switch (extension) {
         case "pdf":
           const pdfArrayBuffer = await file.arrayBuffer();
-          docState = { name: file.name, type: "pdf", content: pdfArrayBuffer };
+          const pdf = await pdfjsLib.getDocument(pdfArrayBuffer).promise;
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const pageContent = await page.getTextContent();
+            textContent += pageContent.items.map((item: any) => item.str).join(" ");
+          }
+          docState = { name: file.name, type: "pdf", content: pdfArrayBuffer, textContent };
           break;
 
         case "md":
         case "markdown":
         case "txt":
-          const textContent = await file.text();
+          textContent = await file.text();
           docState = {
             name: file.name,
             type: extension as "md" | "markdown" | "txt",
             content: textContent,
+            textContent,
           };
           break;
 
         case "docx":
           const arrayBuffer = await file.arrayBuffer();
+          const { value: docxText } = await mammoth.extractRawText({ arrayBuffer });
+          textContent = docxText;
           const { value: html } = await mammoth.convertToHtml({ arrayBuffer });
-          docState = { name: file.name, type: "docx", content: html };
+          docState = { name: file.name, type: "docx", content: html, textContent };
           break;
 
         default:
@@ -68,9 +83,9 @@ const Home = () => {
         setIsAnalysisLoading(true);
         try {
           const [summaryRes, keyPointsRes, questionsRes] = await Promise.all([
-            getSummary(document.content.toString()),
-            getKeyPoints(document.content.toString()),
-            getQuestions(document.content.toString()),
+            getSummary(document.textContent),
+            getKeyPoints(document.textContent),
+            getQuestions(document.textContent),
           ]);
 
           const summary = safeJsonParse(summaryRes.choices[0]?.message?.content || '{}', {}).summary || "";
@@ -79,18 +94,43 @@ const Home = () => {
 
           setAnalysis({ summary, keyPoints, questions });
         } catch (error) {
-          console.error("Error generating analysis:", error);
-          setAnalysis({
-            summary: "Sorry, there was an error generating the analysis.",
-            keyPoints: [],
-            questions: [],
-          });
+            if (error instanceof Error && error.message.includes("VITE_GROQ_API_KEY")) {
+                setApiKeyError(true);
+            } else {
+                console.error("Error generating analysis:", error);
+                setAnalysis({
+                    summary: "Sorry, there was an error generating the analysis.",
+                    keyPoints: [],
+                    questions: [],
+                });
+            }
         }
         setIsAnalysisLoading(false);
       };
       generateAnalysis();
     }
   }, [document]);
+
+  if (apiKeyError) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="p-8 bg-red-100 border border-red-400 text-red-700 rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold mb-4">API Key Error</h2>
+          <p>The VITE_GROQ_API_KEY is not configured.</p>
+          <p>Please create a `.env` file in the root of the project and add your API key:</p>
+          <pre className="mt-4 p-2 bg-gray-800 text-white rounded">
+            VITE_GROQ_API_KEY=your_api_key_here
+          </pre>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!document) {
     return <UploadForm onFileUpload={handleFileUpload} isLoading={isLoading} />;
@@ -103,7 +143,7 @@ const Home = () => {
           <ChatPanel
             fileName={document.name}
             onPreviewClick={() => setIsPreviewOpen(true)}
-            documentContent={document.content.toString()}
+            documentContent={document.textContent}
           />
         </div>
         <div className="w-full md:w-1/2 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">

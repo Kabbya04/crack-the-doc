@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileText, Eye, SendHorizontal } from 'lucide-react';
 import { getChatbotResponse } from '../lib/groq';
+import { safeJsonParse } from '../lib/utils';
 
 type Props = {
   fileName: string;
@@ -15,7 +16,7 @@ type Message = {
 
 const ChatPanel = ({ fileName, onPreviewClick, documentContent }: Props) => {
   const [messages, setMessages] = useState<Message[]>([
-    { sender: 'ai', text: 'Hello! I have analyzed your document. What would you like to know?' },
+    { sender: 'ai', text: "Hello! I'm DocWiz, your personal guide for this document. I'm here to help you understand the material better. Feel free to ask me anything about it!" },
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -30,18 +31,27 @@ const ChatPanel = ({ fileName, onPreviewClick, documentContent }: Props) => {
 
     try {
       const completion = await getChatbotResponse(documentContent, inputValue);
+      const aiResponse = safeJsonParse(completion.choices[0]?.message?.content || '{}', {}).response || 'Sorry, I could not process that.';
       const aiMessage: Message = {
         sender: 'ai',
-        text: completion.choices[0]?.message?.content || 'Sorry, I could not process that.',
+        text: aiResponse,
       };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
-      const errorMessage: Message = {
-        sender: 'ai',
-        text: 'Sorry, there was an error processing your request.',
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+        if (error instanceof Error && error.message.includes("VITE_GROQ_API_KEY")) {
+            const errorMessage: Message = {
+                sender: 'ai',
+                text: 'API key is not configured. Please set VITE_GROQ_API_KEY in your .env file.',
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+        } else {
+            console.error('Error sending message:', error);
+            const errorMessage: Message = {
+                sender: 'ai',
+                text: 'Sorry, there was an error processing your request.',
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+        }
     }
     setIsChatLoading(false);
   };
