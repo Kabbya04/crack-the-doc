@@ -8,7 +8,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import { getSummary, getKeyPoints, getQuestions } from "../lib/groq";
 import { safeJsonParse } from "../lib/utils";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf-worker/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf-worker/pdf.worker.min.mjs`;
 
 export type DocumentFile = {
   name: string;

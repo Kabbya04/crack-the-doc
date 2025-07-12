@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm';
 import type { DocumentFile } from '../pages/Home'; // Import the shared type
 
 // Point to the local worker file. This is the key to fixing the PDF preview.
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf-worker/pdf.worker.min.js';
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf-worker/pdf.worker.min.mjs';
 
 // ---- Specialized Viewer Components ----
 
