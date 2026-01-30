@@ -1,6 +1,5 @@
-// src/components/UploadForm.tsx
-import { useState, type DragEvent, type ChangeEvent } from 'react'; // <-- Import ChangeEvent for clarity
-import { UploadCloud, Loader2 } from 'lucide-react';
+import { useState, type DragEvent, type ChangeEvent } from "react";
+import { UploadCloud, Loader2, FileText } from "lucide-react";
 
 type Props = {
   onFileUpload: (file: File) => void;
@@ -10,69 +9,81 @@ type Props = {
 const UploadForm = ({ onFileUpload, isLoading }: Props) => {
   const [dragActive, setDragActive] = useState(false);
 
-  // === FIX 1: Update the type to match the <form> element ===
   const handleDrag = (e: DragEvent<HTMLFormElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    else if (e.type === "dragleave") setDragActive(false);
   };
 
-  // === FIX 2: Update the type to match the <form> element ===
   const handleDrop = (e: DragEvent<HTMLFormElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      onFileUpload(e.dataTransfer.files[0]);
-    }
+    if (e.dataTransfer.files?.[0]) onFileUpload(e.dataTransfer.files[0]);
   };
-  
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-      onFileUpload(e.target.files[0]);
-    }
+    if (e.target.files?.[0]) onFileUpload(e.target.files[0]);
   };
 
   const supportedFileTypes = ".pdf, .md, .markdown, .txt, .docx";
 
   return (
-    <div className="flex items-center justify-center h-[calc(100vh-100px)] p-4">
-      <form 
-        className={`w-full max-w-2xl p-8 border-2 border-dashed rounded-lg text-center transition-colors ${dragActive ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-gray-300 dark:border-gray-600"}`}
+    <div className="flex min-h-[calc(100vh-theme(spacing.14))] items-center justify-center py-12 px-4">
+      <form
+        className={`relative w-full max-w-xl rounded-2xl border-2 border-dashed p-10 text-center transition-all duration-200 ease-out sm:p-12 ${
+          dragActive
+            ? "border-deep-moss bg-deep-moss/5 dark:border-dark-moss dark:bg-dark-moss/10"
+            : "border-deep-moss/30 bg-white dark:border-dark-moss/30 dark:bg-dark-sage-surface"
+        }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
-        onDrop={handleDrop} // <-- This line will now be error-free
+        onDrop={handleDrop}
       >
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <Loader2 className="w-16 h-16 animate-spin text-blue-500" />
-            <p className="text-lg font-medium">Analyzing your document...</p>
-            <p className="text-sm text-gray-500">This might take a moment.</p>
+          <div className="flex flex-col items-center justify-center space-y-5">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-soft-clay/20 dark:bg-dark-clay/20">
+              <Loader2 className="h-8 w-8 animate-spin text-soft-clay dark:text-dark-clay" />
+            </div>
+            <div>
+              <p className="text-lg font-medium text-deep-moss dark:text-dark-moss">
+                Analyzing your document
+              </p>
+              <p className="mt-1 text-sm text-deep-moss/70 dark:text-dark-moss/70">
+                This may take a moment
+              </p>
+            </div>
           </div>
         ) : (
           <>
-            <UploadCloud className="mx-auto h-16 w-16 text-gray-400" />
-            <h2 className="mt-4 text-2xl font-semibold">Upload Your Document</h2>
-            <p className="mt-2 text-gray-500 dark:text-gray-400">Drag and drop a file or click to select</p>
-            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Supported: PDF, TXT, DOCX, Markdown</p>
-            <input 
-              type="file" 
-              id="file-upload" 
-              className="hidden" 
-              onChange={handleChange} 
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-pale-sage dark:bg-dark-sage">
+              <UploadCloud className="h-10 w-10 text-deep-moss/60 dark:text-dark-moss/60" />
+            </div>
+            <h2 className="mt-6 text-2xl font-semibold text-deep-moss dark:text-dark-moss sm:text-3xl">
+              Upload your document
+            </h2>
+            <p className="mt-2 text-deep-moss/80 dark:text-dark-moss/80">
+              Drag and drop a file here, or click to choose
+            </p>
+            <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-deep-moss/60 dark:text-dark-moss/60">
+              <FileText className="h-3.5 w-3.5" />
+              PDF, TXT, DOCX, Markdown
+            </p>
+            <input
+              type="file"
+              id="file-upload"
+              className="sr-only"
+              onChange={handleChange}
               accept={supportedFileTypes}
             />
-            <label 
+            <label
               htmlFor="file-upload"
-              className="mt-6 inline-block cursor-pointer rounded-md bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              className="mt-8 inline-flex cursor-pointer items-center justify-center rounded-xl bg-soft-clay px-6 py-3 text-sm font-semibold text-deep-moss shadow-soft hover:bg-soft-clay-hover focus-within:outline focus-within:ring-2 focus-within:ring-soft-clay focus-within:ring-offset-2 dark:bg-dark-clay dark:text-dark-sage dark:hover:opacity-90 dark:focus-within:ring-dark-clay dark:focus-within:ring-offset-dark-sage"
             >
-              Select File
+              Select file
             </label>
           </>
         )}

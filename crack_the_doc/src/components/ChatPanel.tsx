@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { FileText, Eye, SendHorizontal } from 'lucide-react';
-import { getChatbotResponse } from '../lib/groq';
-import { safeJsonParse } from '../lib/utils';
+import { useState } from "react";
+import { FileText, Eye, SendHorizontal } from "lucide-react";
+import { getChatbotResponse } from "../lib/groq";
+import { safeJsonParse } from "../lib/utils";
 
 type Props = {
   fileName: string;
@@ -9,114 +9,123 @@ type Props = {
   documentContent: string;
 };
 
-type Message = {
-  sender: 'ai' | 'user';
-  text: string;
-};
+type Message = { sender: "ai" | "user"; text: string };
 
 const ChatPanel = ({ fileName, onPreviewClick, documentContent }: Props) => {
   const [messages, setMessages] = useState<Message[]>([
-    { sender: 'ai', text: "Hello! I'm DocWiz, your personal guide for this document. I'm here to help you understand the material better. Feel free to ask me anything about it!" },
+    {
+      sender: "ai",
+      text: "Hello! I'm DocWiz, your guide for this document. I'm here to help you understand the material. Ask me anything about it.",
+    },
   ]);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
-
-    const userMessage: Message = { sender: 'user', text: inputValue };
+    const userMessage: Message = { sender: "user", text: inputValue };
     setMessages((prev) => [...prev, userMessage]);
-    setInputValue('');
+    setInputValue("");
     setIsChatLoading(true);
-
     try {
       const completion = await getChatbotResponse(documentContent, inputValue);
-      const aiResponse = safeJsonParse(completion.choices[0]?.message?.content || '{}', {}).response || 'Sorry, I could not process that.';
-      const aiMessage: Message = {
-        sender: 'ai',
-        text: aiResponse,
-      };
-      setMessages((prev) => [...prev, aiMessage]);
+      const aiResponse =
+        safeJsonParse(completion.choices[0]?.message?.content || "{}", {}).response ||
+        "Sorry, I could not process that.";
+      setMessages((prev) => [...prev, { sender: "ai", text: aiResponse }]);
     } catch (error) {
-        if (error instanceof Error && error.message.includes("VITE_GROQ_API_KEY")) {
-            const errorMessage: Message = {
-                sender: 'ai',
-                text: 'API key is not configured. Please set VITE_GROQ_API_KEY in your .env file.',
-            };
-            setMessages((prev) => [...prev, errorMessage]);
-        } else {
-            console.error('Error sending message:', error);
-            const errorMessage: Message = {
-                sender: 'ai',
-                text: 'Sorry, there was an error processing your request.',
-            };
-            setMessages((prev) => [...prev, errorMessage]);
-        }
+      const errorMessage: Message = {
+        sender: "ai",
+        text:
+          error instanceof Error && error.message.includes("VITE_GROQ_API_KEY")
+            ? "API key is not configured. Please set VITE_GROQ_API_KEY in your .env file."
+            : "Sorry, there was an error processing your request.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     }
     setIsChatLoading(false);
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-deep-moss/15 bg-white shadow-soft dark:border-dark-moss/20 dark:bg-dark-sage-surface dark:shadow-soft-dark">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <div className="flex items-center space-x-2 font-semibold">
-          <FileText className="w-5 h-5 text-gray-500" />
-          <span>{fileName}</span>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-deep-moss/10 px-4 py-3 dark:border-dark-moss/20">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-deep-moss/10 dark:bg-dark-moss/20">
+            <FileText className="h-4 w-4 text-deep-moss dark:text-dark-moss" />
+          </div>
+          <span className="truncate text-sm font-medium text-deep-moss dark:text-dark-moss">
+            {fileName}
+          </span>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={onPreviewClick}
-            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-            title="Preview Document"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-deep-moss/70 hover:bg-deep-moss/10 hover:text-deep-moss dark:text-dark-moss/70 dark:hover:bg-dark-moss/20 dark:hover:text-dark-moss"
+            title="Preview document"
           >
-            <Eye className="w-5 h-5 text-gray-400" />
+            <Eye className="h-5 w-5" />
           </button>
           <button
+            type="button"
             onClick={() => window.location.reload()}
-            className="px-3 py-1 bg-gray-200 text-gray-800 text-sm rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
+            className="rounded-lg px-3 py-1.5 text-sm font-medium text-deep-moss/80 hover:bg-deep-moss/10 dark:text-dark-moss/80 dark:hover:bg-dark-moss/20"
           >
-            New Session
+            New session
           </button>
         </div>
       </div>
 
-      {/* Chat History */}
-      <div className="flex-grow p-4 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
-        {messages.map((msg, index) => (
-          <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-md p-3 rounded-lg ${msg.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}>
-              <p>{msg.text}</p>
+      {/* Messages */}
+      <div className="flex-1 space-y-4 overflow-y-auto p-4 scrollbar-thin">
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                msg.sender === "user"
+                  ? "bg-deep-moss text-pale-sage dark:bg-dark-moss dark:text-dark-sage"
+                  : "bg-pale-sage text-deep-moss dark:bg-dark-sage dark:text-dark-moss border border-deep-moss/10 dark:border-dark-moss/20"
+              }`}
+            >
+              <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
             </div>
           </div>
         ))}
         {isChatLoading && (
           <div className="flex justify-start">
-            <div className="max-w-md p-3 rounded-lg bg-gray-200 dark:bg-gray-700">
-              <p className='animate-pulse'>...</p>
+            <div className="flex gap-1.5 rounded-2xl border border-deep-moss/10 bg-pale-sage px-4 py-2.5 dark:border-dark-moss/20 dark:bg-dark-sage">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-deep-moss/60 dark:bg-dark-moss/60 [animation-delay:0ms]" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-deep-moss/60 dark:bg-dark-moss/60 [animation-delay:150ms]" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-deep-moss/60 dark:bg-dark-moss/60 [animation-delay:300ms]" />
             </div>
           </div>
         )}
       </div>
-      
-      {/* Chat Input */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+
+      {/* Input */}
+      <div className="shrink-0 border-t border-deep-moss/10 p-4 dark:border-dark-moss/20">
         <div className="relative">
           <input
             type="text"
             placeholder="Ask a question about the document..."
-            className="w-full pl-4 pr-12 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="w-full rounded-xl border border-deep-moss/20 bg-pale-sage py-3 pl-4 pr-12 text-deep-moss placeholder:text-deep-moss/50 focus:border-deep-moss/40 focus:outline-none focus:ring-2 focus:ring-soft-clay/30 dark:border-dark-moss/30 dark:bg-dark-sage dark:text-dark-moss dark:placeholder:text-dark-moss/50 dark:focus:border-dark-moss/50 dark:focus:ring-dark-clay/30"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
             disabled={isChatLoading}
           />
           <button
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-blue-500"
+            type="button"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-deep-moss/60 hover:text-soft-clay dark:text-dark-moss/60 dark:hover:text-dark-clay disabled:opacity-50"
             onClick={handleSendMessage}
             disabled={isChatLoading}
+            aria-label="Send"
           >
-            <SendHorizontal className="w-5 h-5" />
+            <SendHorizontal className="h-5 w-5" />
           </button>
         </div>
       </div>

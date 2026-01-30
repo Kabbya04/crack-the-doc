@@ -1,27 +1,38 @@
-// src/components/Questions.tsx
-import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 
-type Question = {
+type Question = { question: string; answer: string };
+type Props = { questions: Question[] };
+
+const QuestionItem = ({
+  question,
+  answer,
+  index,
+}: {
   question: string;
   answer: string;
-};
-
-type Props = {
-  questions: Question[];
-};
-
-const QuestionItem = ({ question, answer, index }: { question: string, answer: string, index: number }) => {
+  index: number;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <li className="border-b border-gray-200 dark:border-gray-700 py-4">
-      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center text-left">
-        <span className="font-medium">{index + 1}. {question}</span>
-        <ChevronDown className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+    <li className="border-b border-deep-moss/10 py-4 last:border-0 dark:border-dark-moss/20">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between gap-2 text-left"
+      >
+        <span className="font-medium text-deep-moss dark:text-dark-moss">
+          {index + 1}. {question}
+        </span>
+        <ChevronDown
+          className={`h-5 w-5 shrink-0 text-deep-moss/60 transition-transform dark:text-dark-moss/60 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
       </button>
       {isOpen && (
-        <div className="mt-3 text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
+        <div className="mt-3 rounded-lg bg-pale-sage/70 p-3 text-sm leading-relaxed text-deep-moss/90 dark:bg-dark-sage/70 dark:text-dark-moss/90">
           {answer}
         </div>
       )}
@@ -32,10 +43,17 @@ const QuestionItem = ({ question, answer, index }: { question: string, answer: s
 const Questions = ({ questions }: Props) => {
   return (
     <div className="space-y-2">
-      <h3 className="text-xl font-semibold mb-4">Generated Questions</h3>
-      <ol className="space-y-2">
-        {questions.map((q, index) => (
-          <QuestionItem key={index} question={q.question} answer={q.answer} index={index} />
+      <h3 className="text-lg font-semibold text-deep-moss dark:text-dark-moss">
+        Generated questions
+      </h3>
+      <ol className="space-y-0">
+        {questions.map((q, i) => (
+          <QuestionItem
+            key={i}
+            question={q.question}
+            answer={q.answer}
+            index={i}
+          />
         ))}
       </ol>
     </div>
