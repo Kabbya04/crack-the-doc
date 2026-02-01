@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import UploadForm from "../components/UploadForm";
 import ChatPanel from "../components/ChatPanel";
 import AnalysisPanel from "../components/AnalysisPanel";
+import PreviewColumn from "../components/PreviewColumn";
 import DocumentPreviewModal from "../components/DocumentPreviewModal";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
@@ -143,21 +144,25 @@ const Home = () => {
 
   if (apiKeyError) {
     return (
-      <div className="flex min-h-[calc(100vh-theme(spacing.14))] items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-2xl border border-deep-moss/20 bg-white p-6 shadow-soft dark:border-dark-moss/30 dark:bg-dark-sage-surface">
-          <h2 className="text-xl font-semibold text-deep-moss dark:text-dark-moss">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl border border-deep-moss/15 bg-white p-8 shadow-soft-md dark:border-dark-moss/25 dark:bg-dark-sage-surface dark:shadow-soft-dark">
+          <h2 className="text-title font-semibold text-deep-moss dark:text-dark-moss">
             API key required
           </h2>
-          <p className="mt-2 text-sm text-deep-moss/80 dark:text-dark-moss/80">
-            VITE_GROQ_API_KEY is not configured. Add it to a <code className="rounded bg-pale-sage px-1 dark:bg-dark-sage">.env</code> file in the project root.
+          <p className="mt-3 text-body text-deep-moss/80 dark:text-dark-moss/80">
+            VITE_GROQ_API_KEY is not configured. Add it to a{" "}
+            <code className="rounded bg-pale-sage px-1.5 py-0.5 dark:bg-dark-sage">
+              .env
+            </code>{" "}
+            file in the project root.
           </p>
-          <pre className="mt-4 overflow-x-auto rounded-xl bg-deep-moss/10 p-3 text-xs text-deep-moss dark:bg-dark-moss/20 dark:text-dark-moss">
+          <pre className="mt-5 overflow-x-auto rounded-xl bg-deep-moss/10 px-4 py-3 text-caption text-deep-moss dark:bg-dark-moss/15 dark:text-dark-moss">
             VITE_GROQ_API_KEY=your_api_key_here
           </pre>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-4 rounded-xl bg-soft-clay px-4 py-2.5 text-sm font-semibold text-deep-moss hover:bg-soft-clay-hover focus:outline-none focus:ring-2 focus:ring-soft-clay focus:ring-offset-2 dark:bg-dark-clay dark:text-dark-sage dark:hover:opacity-90 dark:focus:ring-dark-clay dark:focus:ring-offset-dark-sage"
+            className="mt-6 rounded-xl bg-soft-clay px-5 py-3 text-body font-semibold text-deep-moss shadow-soft transition-colors duration-150 hover:bg-soft-clay-hover focus:outline-none focus:ring-2 focus:ring-soft-clay focus:ring-offset-2 dark:bg-dark-clay dark:text-dark-sage dark:hover:opacity-90 dark:focus:ring-dark-clay dark:focus:ring-offset-dark-sage"
           >
             Retry
           </button>
@@ -174,17 +179,37 @@ const Home = () => {
 
   return (
     <>
-      <div className="flex flex-col gap-6 py-6 md:flex-row md:h-[calc(100vh-theme(spacing.14)-theme(spacing.12))]">
-        <div className="flex min-h-0 w-full flex-col md:w-1/2">
-          <ChatPanel
-            fileName={document.name}
-            onPreviewClick={() => setIsPreviewOpen(true)}
-            documentContent={document.textContent}
+      {/* Desktop: two rows — top = Chat | Analysis, bottom = full-width readable Preview. Page scrolls so preview can show a full page. */}
+      <div className="flex min-h-[calc(100vh-4rem)] flex-col gap-4 overflow-y-auto py-4 md:gap-4 md:py-6">
+        {/* Row 1: Chat | Analysis (side-by-side on desktop, stacked on mobile) */}
+        <div className="flex min-h-0 shrink-0 flex-col gap-4 md:flex-row md:gap-4">
+          <section
+            className="flex min-h-0 min-w-0 flex-1 flex-col"
+            aria-label="Chat with document"
+          >
+            <ChatPanel
+              fileName={document.name}
+              documentContent={document.textContent}
+            />
+          </section>
+          <section
+            className="flex min-h-0 min-w-0 flex-1 flex-col"
+            aria-label="Analysis and study tools"
+          >
+            <AnalysisPanel analysis={analysis} isLoading={isAnalysisLoading} />
+          </section>
+        </div>
+        {/* Row 2: Preview — full width, fixed height so one full PDF page fits (letter at 680px width ≈ 880px) */}
+        <section
+          className="hidden flex-col md:flex md:h-[880px]"
+          aria-label="Document preview"
+        >
+          <PreviewColumn
+            document={document}
+            onFocusClick={() => setIsPreviewOpen(true)}
+            layout="readable"
           />
-        </div>
-        <div className="min-h-0 w-full overflow-y-auto md:w-1/2 scrollbar-thin">
-          <AnalysisPanel analysis={analysis} isLoading={isAnalysisLoading} />
-        </div>
+        </section>
       </div>
       {isPreviewOpen && document && (
         <DocumentPreviewModal

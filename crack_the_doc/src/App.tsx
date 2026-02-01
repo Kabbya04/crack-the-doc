@@ -6,50 +6,59 @@ function App() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-pale-sage text-deep-moss dark:bg-dark-sage dark:text-dark-moss transition-colors">
-      <header className="sticky top-0 z-40 border-b border-deep-moss/10 dark:border-dark-moss/20 bg-pale-sage/95 dark:bg-dark-sage/95 backdrop-blur supports-[backdrop-filter]:bg-pale-sage/80 dark:supports-[backdrop-filter]:bg-dark-sage/80">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo + app name */}
+    <div className="min-h-screen bg-pale-sage text-deep-moss transition-colors duration-200 dark:bg-dark-sage dark:text-dark-moss">
+      <header className="sticky top-0 z-40 border-b border-deep-moss/[0.08] bg-pale-sage/90 backdrop-blur-md dark:border-dark-moss/15 dark:bg-dark-sage/90 shadow-soft dark:shadow-soft-dark">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-deep-moss text-pale-sage dark:bg-dark-moss dark:text-dark-sage">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-deep-moss text-pale-sage shadow-soft dark:bg-dark-moss dark:text-dark-sage dark:shadow-soft-dark">
               <BookOpen className="h-5 w-5" aria-hidden />
             </div>
-            <span className="text-lg font-semibold tracking-tight text-deep-moss dark:text-dark-moss">
+            <span className="text-title font-semibold tracking-tight text-deep-moss dark:text-dark-moss">
               Crack The Doc
             </span>
           </div>
 
-          {/* Placeholder nav for future: Library, Settings, Focus mode, etc. */}
-          <nav className="hidden sm:flex items-center gap-1" aria-label="Primary">
-            <span className="rounded-md px-3 py-2 text-sm font-medium text-deep-moss/70 dark:text-dark-moss/70">
+          <nav className="hidden sm:flex items-center gap-0.5" aria-label="Primary">
+            <span className="rounded-lg px-3 py-2 text-caption font-medium text-deep-moss/80 dark:text-dark-moss/80">
               Study
             </span>
-            <span className="rounded-md px-3 py-2 text-sm font-medium text-deep-moss/50 dark:text-dark-moss/50 cursor-not-allowed" title="Coming soon">
+            <span
+              className="rounded-lg px-3 py-2 text-caption font-medium text-deep-moss/40 dark:text-dark-moss/40 cursor-not-allowed"
+              title="Coming soon"
+            >
               Library
             </span>
-            <span className="rounded-md px-3 py-2 text-sm font-medium text-deep-moss/50 dark:text-dark-moss/50 cursor-not-allowed" title="Coming soon">
+            <span
+              className="rounded-lg px-3 py-2 text-caption font-medium text-deep-moss/40 dark:text-dark-moss/40 cursor-not-allowed"
+              title="Coming soon"
+            >
               Focus
             </span>
           </nav>
 
-          {/* Theme toggle */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-deep-moss hover:bg-deep-moss/10 dark:text-dark-moss dark:hover:bg-dark-moss/20 transition-colors focus:outline-none focus:ring-2 focus:ring-soft-clay focus:ring-offset-2 focus:ring-offset-pale-sage dark:focus:ring-offset-dark-sage"
-              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {theme === "dark" ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-xl bg-soft-clay px-4 py-2.5 text-caption font-semibold text-deep-moss shadow-soft transition-colors duration-150 hover:bg-soft-clay-hover focus:outline-none focus:ring-2 focus:ring-soft-clay focus:ring-offset-2 focus:ring-offset-pale-sage dark:bg-dark-clay dark:text-dark-sage dark:hover:opacity-90 dark:focus:ring-dark-clay dark:focus:ring-offset-dark-sage"
+          >
+            New session
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-deep-moss/80 transition-colors duration-150 hover:bg-deep-moss/10 hover:text-deep-moss focus:outline-none focus:ring-2 focus:ring-soft-clay focus:ring-offset-2 focus:ring-offset-pale-sage dark:text-dark-moss/80 dark:hover:bg-dark-moss/15 dark:hover:text-dark-moss dark:focus:ring-offset-dark-sage"
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </button>
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <Home />
       </main>
     </div>

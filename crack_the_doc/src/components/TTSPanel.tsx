@@ -191,7 +191,7 @@ const TTSPanel = ({ textToRead }: Props) => {
     "flex h-9 w-9 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-dark-sage-surface";
 
   return (
-    <div className="flex items-center gap-4 rounded-xl bg-pale-sage/80 px-4 py-3 dark:bg-dark-sage/80">
+    <div className="flex items-center gap-4 rounded-xl bg-pale-sage/80 px-4 py-3 dark:bg-dark-sage-elevated/90">
       <button
         type="button"
         onClick={handlePlayPause}

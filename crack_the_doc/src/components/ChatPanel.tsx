@@ -1,38 +1,80 @@
-import { useState } from "react";
-import { FileText, Eye, SendHorizontal } from "lucide-react";
-import { getChatbotResponse } from "../lib/groq";
-import { safeJsonParse } from "../lib/utils";
+import { useState, useRef, useEffect } from "react";
+import { FileText, SendHorizontal } from "lucide-react";
+import { streamChatbotResponse } from "../lib/groq";
 
 type Props = {
   fileName: string;
-  onPreviewClick: () => void;
   documentContent: string;
 };
 
 type Message = { sender: "ai" | "user"; text: string };
 
-const ChatPanel = ({ fileName, onPreviewClick, documentContent }: Props) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      sender: "ai",
-      text: "Hello! I'm DocWiz, your guide for this document. I'm here to help you understand the material. Ask me anything about it.",
-    },
-  ]);
+const INITIAL_AI_MESSAGE: Message = {
+  sender: "ai",
+  text: "Hello! I'm DocWiz, your guide for this document. Ask me anything about the material.",
+};
+
+const ChatPanel = ({ fileName, documentContent }: Props) => {
+  const [messages, setMessages] = useState<Message[]>([INITIAL_AI_MESSAGE]);
   const [inputValue, setInputValue] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
-    const userMessage: Message = { sender: "user", text: inputValue };
-    setMessages((prev) => [...prev, userMessage]);
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+
+    const userMessage: Message = { sender: "user", text: trimmed };
     setInputValue("");
     setIsChatLoading(true);
+
+    // Conversation history for API: exclude the initial welcome (index 0) and the messages we're about to add
+    const conversationHistory: Array<{ role: "user" | "assistant"; content: string }> = messages
+      .slice(1)
+      .map((m) => ({
+        role: m.sender === "user" ? ("user" as const) : ("assistant" as const),
+        content: m.text,
+      }));
+
+    // Add user message and placeholder AI message in one update
+    setMessages((prev) => [...prev, userMessage, { sender: "ai", text: "" }]);
+
     try {
-      const completion = await getChatbotResponse(documentContent, inputValue);
-      const aiResponse =
-        safeJsonParse(completion.choices[0]?.message?.content || "{}", {}).response ||
-        "Sorry, I could not process that.";
-      setMessages((prev) => [...prev, { sender: "ai", text: aiResponse }]);
+      let fullText = "";
+      for await (const chunk of streamChatbotResponse(
+        documentContent,
+        conversationHistory,
+        trimmed
+      )) {
+        fullText += chunk;
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last?.sender === "ai") {
+            next[next.length - 1] = { ...last, text: fullText };
+          }
+          return next;
+        });
+      }
+      // If stream ended with empty response, set a fallback
+      if (!fullText.trim()) {
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last?.sender === "ai") {
+            next[next.length - 1] = { ...last, text: "I couldn't generate a response. Please try again." };
+          }
+          return next;
+        });
+      }
     } catch (error) {
       const errorMessage: Message = {
         sender: "ai",
@@ -41,43 +83,30 @@ const ChatPanel = ({ fileName, onPreviewClick, documentContent }: Props) => {
             ? "API key is not configured. Please set VITE_GROQ_API_KEY in your .env file."
             : "Sorry, there was an error processing your request.",
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => {
+        const next = prev.slice(0, -1);
+        return [...next, errorMessage];
+      });
     }
     setIsChatLoading(false);
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-deep-moss/15 bg-white shadow-soft dark:border-dark-moss/20 dark:bg-dark-sage-surface dark:shadow-soft-dark">
-      {/* Header */}
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-deep-moss/10 px-4 py-3 dark:border-dark-moss/20">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-deep-moss/10 dark:bg-dark-moss/20">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-deep-moss/12 bg-white shadow-soft-md dark:border-dark-moss/20 dark:bg-dark-sage-surface dark:shadow-soft-dark">
+      <div className="shrink-0 border-b border-deep-moss/[0.08] dark:border-dark-moss/15">
+        <p className="px-4 pt-3 pb-1 text-caption font-medium uppercase tracking-wider text-deep-moss/50 dark:text-dark-moss/50">
+          Chat with Doc
+        </p>
+        <div className="flex min-w-0 items-center gap-3 px-4 pb-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-deep-moss/10 dark:bg-dark-moss/15">
             <FileText className="h-4 w-4 text-deep-moss dark:text-dark-moss" />
           </div>
-          <span className="truncate text-sm font-medium text-deep-moss dark:text-dark-moss">
+          <span className="truncate text-body font-semibold text-deep-moss dark:text-dark-moss">
             {fileName}
           </span>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={onPreviewClick}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-deep-moss/70 hover:bg-deep-moss/10 hover:text-deep-moss dark:text-dark-moss/70 dark:hover:bg-dark-moss/20 dark:hover:text-dark-moss"
-            title="Preview document"
-          >
-            <Eye className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-deep-moss/80 hover:bg-deep-moss/10 dark:text-dark-moss/80 dark:hover:bg-dark-moss/20"
-          >
-            New session
-          </button>
-        </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 space-y-4 overflow-y-auto p-4 scrollbar-thin">
         {messages.map((msg, i) => (
           <div
@@ -85,34 +114,36 @@ const ChatPanel = ({ fileName, onPreviewClick, documentContent }: Props) => {
             className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+              className={`max-w-[88%] rounded-2xl px-4 py-3 text-body ${
                 msg.sender === "user"
                   ? "bg-deep-moss text-pale-sage dark:bg-dark-moss dark:text-dark-sage"
-                  : "bg-pale-sage text-deep-moss dark:bg-dark-sage dark:text-dark-moss border border-deep-moss/10 dark:border-dark-moss/20"
+                  : "rounded-bl-md bg-pale-sage text-deep-moss dark:bg-dark-sage-elevated dark:text-dark-moss border border-deep-moss/[0.08] dark:border-dark-moss/15"
               }`}
             >
-              <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+              <p className="whitespace-pre-wrap leading-relaxed">
+                {msg.text || (i === messages.length - 1 && isChatLoading ? "…" : "")}
+              </p>
             </div>
           </div>
         ))}
-        {isChatLoading && (
+        {isChatLoading && messages[messages.length - 1]?.sender !== "ai" && (
           <div className="flex justify-start">
-            <div className="flex gap-1.5 rounded-2xl border border-deep-moss/10 bg-pale-sage px-4 py-2.5 dark:border-dark-moss/20 dark:bg-dark-sage">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-deep-moss/60 dark:bg-dark-moss/60 [animation-delay:0ms]" />
-              <span className="h-2 w-2 animate-pulse rounded-full bg-deep-moss/60 dark:bg-dark-moss/60 [animation-delay:150ms]" />
-              <span className="h-2 w-2 animate-pulse rounded-full bg-deep-moss/60 dark:bg-dark-moss/60 [animation-delay:300ms]" />
+            <div className="flex gap-1.5 rounded-2xl rounded-bl-md border border-deep-moss/[0.08] bg-pale-sage px-4 py-3 dark:border-dark-moss/15 dark:bg-dark-sage-elevated">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-deep-moss/50 dark:bg-dark-moss/50 [animation-delay:0ms]" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-deep-moss/50 dark:bg-dark-moss/50 [animation-delay:150ms]" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-deep-moss/50 dark:bg-dark-moss/50 [animation-delay:300ms]" />
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="shrink-0 border-t border-deep-moss/10 p-4 dark:border-dark-moss/20">
+      <div className="shrink-0 border-t border-deep-moss/[0.08] p-4 dark:border-dark-moss/15">
         <div className="relative">
           <input
             type="text"
             placeholder="Ask a question about the document..."
-            className="w-full rounded-xl border border-deep-moss/20 bg-pale-sage py-3 pl-4 pr-12 text-deep-moss placeholder:text-deep-moss/50 focus:border-deep-moss/40 focus:outline-none focus:ring-2 focus:ring-soft-clay/30 dark:border-dark-moss/30 dark:bg-dark-sage dark:text-dark-moss dark:placeholder:text-dark-moss/50 dark:focus:border-dark-moss/50 dark:focus:ring-dark-clay/30"
+            className="w-full rounded-xl border border-deep-moss/15 bg-pale-sage py-3 pl-4 pr-12 text-body text-deep-moss placeholder:text-deep-moss/45 focus:border-deep-moss/30 focus:outline-none focus:ring-2 focus:ring-soft-clay/25 dark:border-dark-moss/20 dark:bg-dark-sage dark:text-dark-moss dark:placeholder:text-dark-moss/45 dark:focus:border-dark-moss/35 dark:focus:ring-dark-clay/25"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
@@ -120,7 +151,7 @@ const ChatPanel = ({ fileName, onPreviewClick, documentContent }: Props) => {
           />
           <button
             type="button"
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-deep-moss/60 hover:text-soft-clay dark:text-dark-moss/60 dark:hover:text-dark-clay disabled:opacity-50"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-deep-moss/55 transition-colors duration-150 hover:text-soft-clay disabled:opacity-50 dark:text-dark-moss/55 dark:hover:text-dark-clay"
             onClick={handleSendMessage}
             disabled={isChatLoading}
             aria-label="Send"

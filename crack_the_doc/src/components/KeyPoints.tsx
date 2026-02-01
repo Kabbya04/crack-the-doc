@@ -4,19 +4,19 @@ type Props = { points: KeyPoint[] };
 const KeyPoints = ({ points }: Props) => {
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-deep-moss dark:text-dark-moss">
+      <h3 className="text-title font-semibold text-deep-moss dark:text-dark-moss">
         Key points
       </h3>
       <ol className="space-y-3 list-decimal list-inside">
         {points.map((kp, i) => (
           <li
             key={i}
-            className="rounded-xl border border-deep-moss/15 bg-pale-sage/50 p-4 dark:border-dark-moss/20 dark:bg-dark-sage/50"
+            className="rounded-xl border border-deep-moss/10 bg-pale-sage/60 p-4 dark:border-dark-moss/15 dark:bg-dark-sage/60"
           >
-            <h4 className="font-semibold text-soft-clay dark:text-dark-clay">
+            <h4 className="font-semibold text-soft-clay dark:text-dark-clay text-body">
               {kp.point}
             </h4>
-            <p className="mt-1 text-sm leading-relaxed text-deep-moss/90 dark:text-dark-moss/90">
+            <p className="mt-1.5 text-body leading-relaxed text-deep-moss/88 dark:text-dark-moss/88">
               {kp.definition}
             </p>
           </li>

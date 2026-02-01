@@ -31,12 +31,12 @@ const UploadForm = ({ onFileUpload, isLoading }: Props) => {
   const supportedFileTypes = ".pdf, .md, .markdown, .txt, .docx";
 
   return (
-    <div className="flex min-h-[calc(100vh-theme(spacing.14))] items-center justify-center py-12 px-4">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-16 px-4">
       <form
-        className={`relative w-full max-w-xl rounded-2xl border-2 border-dashed p-10 text-center transition-all duration-200 ease-out sm:p-12 ${
+        className={`relative w-full max-w-lg rounded-3xl border-2 border-dashed p-12 text-center transition-all duration-200 sm:p-14 ${
           dragActive
-            ? "border-deep-moss bg-deep-moss/5 dark:border-dark-moss dark:bg-dark-moss/10"
-            : "border-deep-moss/30 bg-white dark:border-dark-moss/30 dark:bg-dark-sage-surface"
+            ? "border-deep-moss bg-deep-moss/[0.04] dark:border-dark-moss dark:bg-dark-moss/10"
+            : "border-deep-moss/25 bg-white dark:border-dark-moss/25 dark:bg-dark-sage-surface shadow-soft-md dark:shadow-soft-dark"
         }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -44,32 +44,32 @@ const UploadForm = ({ onFileUpload, isLoading }: Props) => {
         onDrop={handleDrop}
       >
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center space-y-5">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-soft-clay/20 dark:bg-dark-clay/20">
-              <Loader2 className="h-8 w-8 animate-spin text-soft-clay dark:text-dark-clay" />
+          <div className="flex flex-col items-center justify-center space-y-6">
+            <div className="flex h-18 w-18 items-center justify-center rounded-2xl bg-soft-clay/15 dark:bg-dark-clay/15">
+              <Loader2 className="h-9 w-9 animate-spin text-soft-clay dark:text-dark-clay" />
             </div>
             <div>
-              <p className="text-lg font-medium text-deep-moss dark:text-dark-moss">
+              <p className="text-title font-semibold text-deep-moss dark:text-dark-moss">
                 Analyzing your document
               </p>
-              <p className="mt-1 text-sm text-deep-moss/70 dark:text-dark-moss/70">
+              <p className="mt-1.5 text-body text-deep-moss/70 dark:text-dark-moss/70">
                 This may take a moment
               </p>
             </div>
           </div>
         ) : (
           <>
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-pale-sage dark:bg-dark-sage">
-              <UploadCloud className="h-10 w-10 text-deep-moss/60 dark:text-dark-moss/60" />
+            <div className="mx-auto flex h-22 w-22 items-center justify-center rounded-2xl bg-pale-sage dark:bg-dark-sage shadow-soft dark:shadow-soft-dark">
+              <UploadCloud className="h-11 w-11 text-deep-moss/50 dark:text-dark-moss/50" />
             </div>
-            <h2 className="mt-6 text-2xl font-semibold text-deep-moss dark:text-dark-moss sm:text-3xl">
+            <p className="mt-8 text-display-sm font-semibold tracking-tight text-deep-moss dark:text-dark-moss sm:text-display-md">
               Upload your document
-            </h2>
-            <p className="mt-2 text-deep-moss/80 dark:text-dark-moss/80">
+            </p>
+            <p className="mt-3 text-body text-deep-moss/80 dark:text-dark-moss/80">
               Drag and drop a file here, or click to choose
             </p>
-            <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-deep-moss/60 dark:text-dark-moss/60">
-              <FileText className="h-3.5 w-3.5" />
+            <p className="mt-2 flex items-center justify-center gap-2 text-caption text-deep-moss/55 dark:text-dark-moss/55">
+              <FileText className="h-4 w-4" />
               PDF, TXT, DOCX, Markdown
             </p>
             <input
@@ -81,7 +81,7 @@ const UploadForm = ({ onFileUpload, isLoading }: Props) => {
             />
             <label
               htmlFor="file-upload"
-              className="mt-8 inline-flex cursor-pointer items-center justify-center rounded-xl bg-soft-clay px-6 py-3 text-sm font-semibold text-deep-moss shadow-soft hover:bg-soft-clay-hover focus-within:outline focus-within:ring-2 focus-within:ring-soft-clay focus-within:ring-offset-2 dark:bg-dark-clay dark:text-dark-sage dark:hover:opacity-90 dark:focus-within:ring-dark-clay dark:focus-within:ring-offset-dark-sage"
+              className="mt-10 inline-flex cursor-pointer items-center justify-center rounded-xl bg-soft-clay px-8 py-3.5 text-body font-semibold text-deep-moss shadow-soft transition-colors duration-150 hover:bg-soft-clay-hover focus-within:outline focus-within:ring-2 focus-within:ring-soft-clay focus-within:ring-offset-2 dark:bg-dark-clay dark:text-dark-sage dark:hover:opacity-90 dark:focus-within:ring-dark-clay dark:focus-within:ring-offset-dark-sage"
             >
               Select file
             </label>

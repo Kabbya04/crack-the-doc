@@ -16,23 +16,23 @@ const QuestionItem = ({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <li className="border-b border-deep-moss/10 py-4 last:border-0 dark:border-dark-moss/20">
+    <li className="border-b border-deep-moss/[0.08] py-4 last:border-0 dark:border-dark-moss/15">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between gap-2 text-left"
+        className="flex w-full items-center justify-between gap-2 text-left transition-colors duration-150"
       >
-        <span className="font-medium text-deep-moss dark:text-dark-moss">
+        <span className="text-body font-medium text-deep-moss dark:text-dark-moss">
           {index + 1}. {question}
         </span>
         <ChevronDown
-          className={`h-5 w-5 shrink-0 text-deep-moss/60 transition-transform dark:text-dark-moss/60 ${
+          className={`h-5 w-5 shrink-0 text-deep-moss/55 transition-transform duration-200 dark:text-dark-moss/55 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
       </button>
       {isOpen && (
-        <div className="mt-3 rounded-lg bg-pale-sage/70 p-3 text-sm leading-relaxed text-deep-moss/90 dark:bg-dark-sage/70 dark:text-dark-moss/90">
+        <div className="mt-3 rounded-xl bg-pale-sage/70 p-4 text-body leading-relaxed text-deep-moss/90 dark:bg-dark-sage-elevated/80 dark:text-dark-moss/90">
           {answer}
         </div>
       )}
@@ -43,7 +43,7 @@ const QuestionItem = ({
 const Questions = ({ questions }: Props) => {
   return (
     <div className="space-y-2">
-      <h3 className="text-lg font-semibold text-deep-moss dark:text-dark-moss">
+      <h3 className="text-title font-semibold text-deep-moss dark:text-dark-moss">
         Generated questions
       </h3>
       <ol className="space-y-0">

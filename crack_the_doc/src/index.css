@@ -1,4 +1,4 @@
-/* Design system: 60% Pale Sage, 30% Deep Moss, 10% Soft Clay */
+/* Evolved design system: Pale Sage, Deep Moss, Soft Clay; dark = Smoked Olive */
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
 
 @tailwind base;
@@ -10,18 +10,17 @@
     @apply antialiased;
   }
   body {
-    @apply bg-pale-sage text-deep-moss font-sans min-h-screen;
+    @apply bg-pale-sage text-deep-moss font-sans min-h-screen text-body;
   }
   html.dark body {
     @apply bg-dark-sage text-dark-moss;
   }
 }
 
-/* Scrollbar styling to match palette */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: theme("colors.deep-moss / 0.4") transparent;
+  scrollbar-color: theme("colors.deep-moss / 0.35") transparent;
 }
 .dark .scrollbar-thin {
-  scrollbar-color: theme("colors.dark-moss / 0.5") transparent;
+  scrollbar-color: theme("colors.dark-moss / 0.45") transparent;
 }
