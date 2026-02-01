@@ -6,8 +6,7 @@ import PreviewColumn from "../components/PreviewColumn";
 import DocumentPreviewModal from "../components/DocumentPreviewModal";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
-import { getSummary, getKeyPoints, getQuestions } from "../lib/groq";
-import { safeJsonParse } from "../lib/utils";
+import { getAnalysis } from "../lib/groq";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "/pdf-worker/pdf.worker.min.mjs",
@@ -107,21 +106,12 @@ const Home = () => {
     const generateAnalysis = async () => {
       setIsAnalysisLoading(true);
       try {
-        const [summaryRes, keyPointsRes, questionsRes] = await Promise.all([
-          getSummary(document.textContent),
-          getKeyPoints(document.textContent),
-          getQuestions(document.textContent),
-        ]);
-        const summary =
-          safeJsonParse(summaryRes.choices[0]?.message?.content || "{}", {})
-            .summary || "";
-        const keyPoints =
-          safeJsonParse(keyPointsRes.choices[0]?.message?.content || "{}", {})
-            .key_points || [];
-        const questions =
-          safeJsonParse(questionsRes.choices[0]?.message?.content || "{}", {})
-            .questions || [];
-        setAnalysis({ summary, keyPoints, questions });
+        const result = await getAnalysis(document.textContent);
+        setAnalysis({
+          summary: result.summary,
+          keyPoints: result.key_points.map((kp, i) => ({ ...kp, id: i })),
+          questions: result.questions.map((q, i) => ({ ...q, id: i })),
+        });
       } catch (error) {
         if (
           error instanceof Error &&
@@ -189,7 +179,10 @@ const Home = () => {
           >
             <ChatPanel
               fileName={document.name}
-              documentContent={document.textContent}
+              summary={analysis.summary}
+              keyPoints={analysis.keyPoints}
+              fullDocument={document.textContent}
+              isAnalysisReady={!isAnalysisLoading && (analysis.summary.length > 0 || analysis.keyPoints.length > 0)}
             />
           </section>
           <section
