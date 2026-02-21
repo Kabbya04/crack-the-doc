@@ -18,6 +18,7 @@ This file lists work that is **not yet implemented**, especially around **auth**
 ## Document Storage & Persistence
 
 - [ ] **Store documents in the cloud** — Replace or complement local storage with user-scoped document storage (e.g. Google Drive, S3, or your own backend).
+- [ ] **Google Drive integration** — Use Google Drive as primary or optional storage: sign in with Google (OAuth), “Open from Drive” (picker or list of supported files), “Save to Drive” (save analysis, takeaways, or study pack). Store document metadata and app state (ratings, mastery, studied-per-day) in Drive (e.g. app data folder or a small JSON file per doc) or sync via your backend.
 - [ ] **Document list / library** — List of user’s saved documents (by account), with metadata (name, date, mastery status, etc.).
 - [ ] **Sync recall ratings, takeaways, and mastery** — Persist per-document state (ratings, one-line takeaway, mastered flag) to the backend keyed by user + document.
 - [ ] **Sync “last doc” and “today’s quiz” source** — So “Today’s quiz” (questions from docs studied yesterday) and daily streak work across devices once the user is signed in.
