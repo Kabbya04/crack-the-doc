@@ -1,6 +1,6 @@
 import { Maximize2 } from "lucide-react";
 import { DocumentPreviewContent } from "./DocumentPreviewContent";
-import type { DocumentFile } from "../pages/Home";
+import type { DocumentFile } from "../types/session";
 
 type Props = {
   document: DocumentFile;

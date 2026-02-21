@@ -1,7 +1,7 @@
 import { Component, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { DocumentPreviewContent } from "./DocumentPreviewContent";
-import type { DocumentFile } from "../pages/Home";
+import type { DocumentFile } from "../types/session";
 
 class PreviewErrorBoundary extends Component<{
   children: ReactNode;

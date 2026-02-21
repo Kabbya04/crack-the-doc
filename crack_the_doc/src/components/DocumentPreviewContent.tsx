@@ -5,7 +5,7 @@ import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { DocumentFile } from "../pages/Home";
+import type { DocumentFile } from "../types/session";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "/pdf-worker/pdf.worker.react-pdf.min.mjs",

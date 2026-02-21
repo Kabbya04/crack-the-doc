@@ -6,16 +6,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        "pale-sage": "#F3F7F4",
-        "deep-moss": "#3F6F5E",
-        "deep-moss-hover": "#365a4d",
-        "soft-clay": "#CFAE70",
-        "soft-clay-hover": "#c19d5a",
-        // Dark: Smoked Olive (replaces dark sage)
-        "dark-sage": "#34332D",
-        "dark-sage-surface": "#3d3c36",
-        "dark-sage-elevated": "#46453e",
-        "dark-moss": "#5a7d6e",
+        // Light: higher contrast for readability (WCAG AA)
+        "pale-sage": "#F2F5F3",
+        "deep-moss": "#1a2e26",
+        "deep-moss-hover": "#0f1f19",
+        "soft-clay": "#B8954E",
+        "soft-clay-hover": "#9a7b3d",
+        // Dark: readable text on dark bg
+        "dark-sage": "#1c1b18",
+        "dark-sage-surface": "#252420",
+        "dark-sage-elevated": "#2e2d28",
+        "dark-moss": "#d4e0da",
         "dark-clay": "#d4b87a",
       },
       fontFamily: {
@@ -39,11 +40,11 @@ export default {
         "4xl": "2rem",
       },
       boxShadow: {
-        soft: "0 1px 3px rgba(63, 111, 94, 0.06), 0 4px 12px rgba(63, 111, 94, 0.04)",
-        "soft-md": "0 2px 6px rgba(63, 111, 94, 0.06), 0 8px 24px rgba(63, 111, 94, 0.06)",
-        "soft-lg": "0 4px 12px rgba(63, 111, 94, 0.08), 0 16px 40px rgba(63, 111, 94, 0.06)",
-        "soft-dark": "0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.12)",
-        "soft-dark-md": "0 4px 12px rgba(0,0,0,0.18), 0 12px 32px rgba(0,0,0,0.14)",
+        soft: "0 1px 3px rgba(26, 46, 38, 0.08), 0 4px 12px rgba(26, 46, 38, 0.05)",
+        "soft-md": "0 2px 6px rgba(26, 46, 38, 0.08), 0 8px 24px rgba(26, 46, 38, 0.06)",
+        "soft-lg": "0 4px 12px rgba(26, 46, 38, 0.1), 0 16px 40px rgba(26, 46, 38, 0.08)",
+        "soft-dark": "0 2px 8px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.15)",
+        "soft-dark-md": "0 4px 12px rgba(0,0,0,0.22), 0 12px 32px rgba(0,0,0,0.16)",
       },
       transitionDuration: {
         "150": "150ms",

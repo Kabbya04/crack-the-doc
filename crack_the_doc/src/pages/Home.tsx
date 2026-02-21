@@ -1,36 +1,39 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import UploadForm from "../components/UploadForm";
 import ChatPanel from "../components/ChatPanel";
 import AnalysisPanel from "../components/AnalysisPanel";
 import PreviewColumn from "../components/PreviewColumn";
 import DocumentPreviewModal from "../components/DocumentPreviewModal";
+import TodayQuizCard from "../components/TodayQuizCard";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
 import { getAnalysis } from "../lib/groq";
+import { useSession } from "../contexts/SessionContext";
+import type { DocumentFile } from "../types/session";
+import { getDocKey, setLastDoc } from "../lib/storage";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "/pdf-worker/pdf.worker.min.mjs",
   window.location.origin
 ).href;
 
-export type DocumentFile = {
-  name: string;
-  type: "pdf" | "docx" | "md" | "txt" | "markdown";
-  content: File | string | ArrayBuffer;
-  textContent: string;
-};
-
 const Home = () => {
-  const [document, setDocument] = useState<DocumentFile | null>(null);
+  const {
+    document,
+    setDocument,
+    analysis,
+    setAnalysis,
+    isAnalysisLoading,
+    setIsAnalysisLoading,
+    apiKeyError,
+    setApiKeyError,
+    recallRatings,
+    docKey,
+  } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [analysis, setAnalysis] = useState({
-    summary: "",
-    keyPoints: [],
-    questions: [],
-  });
-  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
-  const [apiKeyError, setApiKeyError] = useState(false);
+  /** Tracks which document we already analyzed so we don't re-run when navigating back to Study. */
+  const analyzedDocRef = useRef<DocumentFile | null>(null);
 
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
@@ -102,15 +105,28 @@ const Home = () => {
   };
 
   useEffect(() => {
-    if (!document) return;
+    if (!document) {
+      analyzedDocRef.current = null;
+      return;
+    }
+    if (analyzedDocRef.current === document) return;
+    analyzedDocRef.current = document;
     const generateAnalysis = async () => {
       setIsAnalysisLoading(true);
       try {
         const result = await getAnalysis(document.textContent);
+        const keyPoints = result.key_points.map((kp, i) => ({ ...kp, id: i }));
+        const questions = result.questions.map((q, i) => ({ ...q, id: i }));
         setAnalysis({
           summary: result.summary,
-          keyPoints: result.key_points.map((kp, i) => ({ ...kp, id: i })),
-          questions: result.questions.map((q, i) => ({ ...q, id: i })),
+          keyPoints,
+          questions,
+        });
+        setLastDoc({
+          docKey: getDocKey(document.name, document.textContent.length),
+          docName: document.name,
+          questions,
+          keyPoints,
         });
       } catch (error) {
         if (
@@ -130,7 +146,7 @@ const Home = () => {
       setIsAnalysisLoading(false);
     };
     generateAnalysis();
-  }, [document]);
+  }, [document, setAnalysis, setIsAnalysisLoading, setApiKeyError]);
 
   if (apiKeyError) {
     return (
@@ -152,7 +168,7 @@ const Home = () => {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-6 rounded-xl bg-soft-clay px-5 py-3 text-body font-semibold text-deep-moss shadow-soft transition-colors duration-150 hover:bg-soft-clay-hover focus:outline-none focus:ring-2 focus:ring-soft-clay focus:ring-offset-2 dark:bg-dark-clay dark:text-dark-sage dark:hover:opacity-90 dark:focus:ring-dark-clay dark:focus:ring-offset-dark-sage"
+            className="mt-6 rounded-xl bg-soft-clay px-5 py-3 text-body font-semibold text-deep-moss shadow-soft transition-colors duration-150 hover:bg-soft-clay-hover focus:outline-none focus:ring-2 focus:ring-soft-clay focus:ring-offset-2 dark:bg-dark-clay dark:text-deep-moss dark:hover:opacity-90 dark:focus:ring-dark-clay dark:focus:ring-offset-dark-sage"
           >
             Retry
           </button>
@@ -163,18 +179,20 @@ const Home = () => {
 
   if (!document) {
     return (
-      <UploadForm onFileUpload={handleFileUpload} isLoading={isLoading} />
+      <div className="flex min-h-[calc(100vh-4rem)] flex-col gap-6 py-6">
+        <TodayQuizCard />
+        <UploadForm onFileUpload={handleFileUpload} isLoading={isLoading} />
+      </div>
     );
   }
 
   return (
     <>
-      {/* Desktop: two rows — top = Chat | Analysis, bottom = full-width readable Preview. Page scrolls so preview can show a full page. */}
       <div className="flex min-h-[calc(100vh-4rem)] flex-col gap-4 overflow-y-auto py-4 md:gap-4 md:py-6">
-        {/* Row 1: Chat | Analysis (side-by-side on desktop, stacked on mobile) */}
-        <div className="flex min-h-0 shrink-0 flex-col gap-4 md:flex-row md:gap-4">
+        <TodayQuizCard />
+        <div className="flex min-h-[420px] shrink-0 flex-col gap-4 md:flex-row md:gap-4 md:h-[min(70vh,720px)]">
           <section
-            className="flex min-h-0 min-w-0 flex-1 flex-col"
+            className="flex min-h-[320px] min-w-0 flex-1 flex-col md:min-h-0 md:h-full"
             aria-label="Chat with document"
           >
             <ChatPanel
@@ -186,13 +204,18 @@ const Home = () => {
             />
           </section>
           <section
-            className="flex min-h-0 min-w-0 flex-1 flex-col"
+            className="flex min-h-[320px] min-w-0 flex-1 flex-col md:min-h-0 md:h-full"
             aria-label="Analysis and study tools"
           >
-            <AnalysisPanel analysis={analysis} isLoading={isAnalysisLoading} />
+            <AnalysisPanel
+              analysis={analysis}
+              isLoading={isAnalysisLoading}
+              recallRatings={recallRatings}
+              docKey={docKey}
+              docName={document.name}
+            />
           </section>
         </div>
-        {/* Row 2: Preview — full width, fixed height so one full PDF page fits (letter at 680px width ≈ 880px) */}
         <section
           className="hidden flex-col md:flex md:h-[880px]"
           aria-label="Document preview"

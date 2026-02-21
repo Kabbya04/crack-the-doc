@@ -3,7 +3,11 @@ import SummaryDisplay from "./SummaryDisplay";
 import KeyPoints from "./KeyPoints";
 import Questions from "./Questions";
 import TTSPanel from "./TTSPanel";
-import { BookOpen, HelpCircle, ListChecks, Download } from "lucide-react";
+import ConfidenceHeatmap from "./ConfidenceHeatmap";
+import { BookOpen, HelpCircle, ListChecks, Download, Target, Lightbulb } from "lucide-react";
+import { getTakeawayForDoc, addTakeaway, recordActivity } from "../lib/storage";
+import { useSession } from "../contexts/SessionContext";
+import type { RecallRating } from "../types/session";
 
 type KeyPoint = { id: number; point: string; definition: string };
 type Question = { id: number; question: string; answer: string };
@@ -13,11 +17,22 @@ type Analysis = {
   questions: Question[];
 };
 
-type Props = { analysis: Analysis; isLoading: boolean };
-type Tab = "summary" | "key-points" | "questions";
+type Props = {
+  analysis: Analysis;
+  isLoading: boolean;
+  recallRatings: Record<number, RecallRating>;
+  docKey: string | null;
+  docName: string;
+};
+type Tab = "summary" | "key-points" | "questions" | "confidence";
 
-const AnalysisPanel = ({ analysis, isLoading }: Props) => {
+const AnalysisPanel = ({ analysis, isLoading, recallRatings, docKey, docName }: Props) => {
+  const { recordStudiedToday } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>("summary");
+  const [takeawayInput, setTakeawayInput] = useState("");
+  const [savedTakeawayText, setSavedTakeawayText] = useState<string | null>(null);
+  const existingTakeaway = docKey ? getTakeawayForDoc(docKey) : null;
+  const displayTakeaway = savedTakeawayText ?? existingTakeaway?.takeaway ?? null;
 
   const getTabContent = () => {
     switch (activeTab) {
@@ -29,9 +44,31 @@ const AnalysisPanel = ({ analysis, isLoading }: Props) => {
         return analysis.questions
           .map((q) => `Question: ${q.question}\nAnswer: ${q.answer}`)
           .join("\n\n");
+      case "confidence":
+        return analysis.questions
+          .map((q) => {
+            const r = recallRatings[q.id];
+            return `Q: ${q.question} — ${r ?? "not rated"}`;
+          })
+          .join("\n\n");
       default:
         return "";
     }
+  };
+
+  const handleSaveTakeaway = () => {
+    const trimmed = takeawayInput.trim();
+    if (!trimmed || !docKey) return;
+    addTakeaway({
+      docKey,
+      docName,
+      takeaway: trimmed,
+      date: new Date().toISOString(),
+    });
+    recordActivity();
+    recordStudiedToday();
+    setSavedTakeawayText(trimmed);
+    setTakeawayInput("");
   };
 
   const tabClass = (tab: Tab) =>
@@ -78,6 +115,10 @@ const AnalysisPanel = ({ analysis, isLoading }: Props) => {
               <HelpCircle className="h-5 w-5 shrink-0" />
               <span>Questions</span>
             </button>
+            <button type="button" onClick={() => setActiveTab("confidence")} className={tabClass("confidence")}>
+              <Target className="h-5 w-5 shrink-0" />
+              <span>Confidence</span>
+            </button>
           </nav>
           <button
             type="button"
@@ -99,7 +140,43 @@ const AnalysisPanel = ({ analysis, isLoading }: Props) => {
         {activeTab === "summary" && <SummaryDisplay summary={analysis.summary} />}
         {activeTab === "key-points" && <KeyPoints points={analysis.keyPoints} />}
         {activeTab === "questions" && <Questions questions={analysis.questions} />}
+        {activeTab === "confidence" && (
+          <ConfidenceHeatmap questions={analysis.questions} ratings={recallRatings} />
+        )}
       </div>
+
+      {/* One-line takeaway */}
+      {docKey && (
+        <div className="shrink-0 rounded-2xl border border-deep-moss/12 bg-white p-4 shadow-soft dark:border-dark-moss/20 dark:bg-dark-sage-surface">
+          <p className="flex items-center gap-2 text-caption font-medium text-deep-moss/70 dark:text-dark-moss/70">
+            <Lightbulb className="h-4 w-4" />
+            One thing you&apos;ll remember
+          </p>
+          {displayTakeaway ? (
+            <p className="mt-2 text-body italic text-deep-moss dark:text-dark-moss">
+              &quot;{displayTakeaway}&quot;
+            </p>
+          ) : (
+            <div className="mt-2 flex gap-2">
+              <input
+                type="text"
+                value={takeawayInput}
+                onChange={(e) => setTakeawayInput(e.target.value)}
+                placeholder="In one line..."
+                className="min-w-0 flex-1 rounded-lg border border-deep-moss/15 bg-pale-sage px-3 py-2 text-body text-deep-moss placeholder:text-deep-moss/45 dark:border-dark-moss/20 dark:bg-dark-sage dark:text-dark-moss dark:placeholder:text-dark-moss/45"
+              />
+              <button
+                type="button"
+                onClick={handleSaveTakeaway}
+                disabled={!takeawayInput.trim()}
+                className="rounded-lg bg-soft-clay px-3 py-2 text-caption font-semibold text-deep-moss disabled:opacity-50 dark:bg-dark-clay dark:text-deep-moss"
+              >
+                Save
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

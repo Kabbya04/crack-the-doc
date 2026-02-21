@@ -23,12 +23,14 @@ Reply in plain text; use bullets or code blocks when helpful. Do not output JSON
 
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
-/** Chat context: summary + key points by default; full document only when user requests (saves tokens). */
+/** Chat context: summary + key points by default; full document only when user requests (saves tokens). When doc > 12k, RAG can supply retrievedChunks. */
 export type DocumentContext = {
   summary: string;
   keyPoints: Array<{ point: string; definition: string }>;
   fullDocument?: string;
   useFullDocument?: boolean;
+  /** When set, used as context instead of full doc (RAG for long documents). */
+  retrievedChunks?: string;
 };
 
 function formatKeyPoints(keyPoints: Array<{ point: string; definition: string }>): string {
@@ -38,6 +40,9 @@ function formatKeyPoints(keyPoints: Array<{ point: string; definition: string }>
 }
 
 function buildChatContextContent(ctx: DocumentContext): string {
+  if (ctx.useFullDocument && ctx.retrievedChunks) {
+    return `Relevant excerpts from the document (use these to answer):\n\n${ctx.retrievedChunks}`;
+  }
   if (ctx.useFullDocument && ctx.fullDocument && ctx.fullDocument.length > 0) {
     const truncated =
       ctx.fullDocument.length > MAX_CHAT_DOCUMENT_CHARS
@@ -152,5 +157,53 @@ export async function* streamChatbotResponse(
     if (typeof content === "string" && content.length > 0) {
       yield content;
     }
+  }
+}
+
+const TEACH_ME_BACK_PROMPT = `You are a study coach. The user is explaining a concept from their document in their own words (Teach Me Back / Feynman technique).
+Given the document summary and key points below, give brief, gentle feedback in plain text:
+1. What they got right.
+2. Any important ideas they missed.
+3. Any misconceptions to correct.
+Keep it encouraging and concise. Do not output JSON.`;
+
+/** Teach Me Back: feedback on user's explanation (missing ideas, misconceptions). Streams plain text. */
+export async function* streamTeachMeBackFeedback(
+  summary: string,
+  keyPoints: Array<{ point: string; definition: string }>,
+  userExplanation: string
+): AsyncGenerator<string, void, unknown> {
+  const keyPointsText = formatKeyPoints(keyPoints);
+  const context = `Summary:\n${summary}\n\nKey points:\n${keyPointsText}`;
+  const userMessage = `User's explanation:\n\n${userExplanation}`;
+  const stream = await groq.chat.completions.create({
+    messages: [
+      { role: "system", content: TEACH_ME_BACK_PROMPT },
+      { role: "user", content: context + "\n\n" + userMessage },
+    ],
+    model: CHAT_MODEL,
+    stream: true,
+  });
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content;
+    if (typeof content === "string" && content.length > 0) yield content;
+  }
+}
+
+const EXPLAIN_CHILD_PROMPT = `Explain the following concept so a smart 10-year-old can understand it. Use simple words, a short analogy if helpful, and 2–4 sentences. Be friendly. Do not output JSON.`;
+
+/** Explain to a 10-year-old: simple-language explanation of a concept. Streams plain text. */
+export async function* streamExplainToChild(concept: string): AsyncGenerator<string, void, unknown> {
+  const stream = await groq.chat.completions.create({
+    messages: [
+      { role: "system", content: EXPLAIN_CHILD_PROMPT },
+      { role: "user", content: concept },
+    ],
+    model: CHAT_MODEL,
+    stream: true,
+  });
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content;
+    if (typeof content === "string" && content.length > 0) yield content;
   }
 }

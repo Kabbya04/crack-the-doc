@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { FileText, SendHorizontal, BookOpen } from "lucide-react";
 import { streamChatbotResponse, type DocumentContext } from "../lib/groq";
+import { getRelevantChunks } from "../lib/rag";
+import { recordActivity } from "../lib/storage";
+import { useSession } from "../contexts/SessionContext";
+
+const MAX_CHAT_DOCUMENT_CHARS = 12_000;
 
 type KeyPoint = { point: string; definition: string };
 
@@ -20,18 +25,20 @@ const INITIAL_AI_MESSAGE: Message = {
 };
 
 const ChatPanel = ({ fileName, summary, keyPoints, fullDocument, isAnalysisReady }: Props) => {
+  const { recordStudiedToday } = useSession();
   const [messages, setMessages] = useState<Message[]>([INITIAL_AI_MESSAGE]);
   const [inputValue, setInputValue] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [useFullDocument, setUseFullDocument] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const chatContext: DocumentContext = {
+  const buildContext = (retrievedChunks?: string): DocumentContext => ({
     summary,
     keyPoints,
     fullDocument,
     useFullDocument,
-  };
+    ...(retrievedChunks ? { retrievedChunks } : {}),
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -60,9 +67,18 @@ const ChatPanel = ({ fileName, summary, keyPoints, fullDocument, isAnalysisReady
     setMessages((prev) => [...prev, userMessage, { sender: "ai", text: "" }]);
 
     try {
+      let context: DocumentContext = buildContext();
+      if (useFullDocument && fullDocument.length > MAX_CHAT_DOCUMENT_CHARS) {
+        try {
+          const chunks = await getRelevantChunks(fullDocument, trimmed, MAX_CHAT_DOCUMENT_CHARS);
+          context = buildContext(chunks);
+        } catch (ragErr) {
+          console.warn("RAG retrieval failed, using truncation:", ragErr);
+        }
+      }
       let fullText = "";
       for await (const chunk of streamChatbotResponse(
-        chatContext,
+        context,
         conversationHistory,
         trimmed
       )) {
@@ -86,6 +102,9 @@ const ChatPanel = ({ fileName, summary, keyPoints, fullDocument, isAnalysisReady
           }
           return next;
         });
+      } else {
+        recordActivity();
+        recordStudiedToday();
       }
     } catch (error) {
       const errorMessage: Message = {
@@ -136,7 +155,7 @@ const ChatPanel = ({ fileName, summary, keyPoints, fullDocument, isAnalysisReady
         </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-4 scrollbar-thin">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 scrollbar-thin">
         {messages.map((msg, i) => (
           <div
             key={i}
