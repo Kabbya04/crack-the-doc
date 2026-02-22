@@ -65,4 +65,4 @@ This file lists work that is **not yet implemented**, especially around **auth**
 
 ---
 
-*Last updated after implementing: Today’s quiz (multiple questions from docs studied yesterday, with fallback to last doc), Explain to a 10-year-old, Confidence heatmap, One-line takeaway, and Doc mastery + streak (all using local storage).*
+*Last updated after implementing: Quiz on its own page (pending-dot indicator, leave confirmation so quiz terminates if user navigates away), Today's quiz (multiple questions from docs studied yesterday, with fallback to last doc), Explain to a 10-year-old, Confidence heatmap, One-line takeaway, and Doc mastery + streak (all using local storage).*

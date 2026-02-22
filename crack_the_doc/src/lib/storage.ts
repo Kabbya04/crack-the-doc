@@ -251,3 +251,12 @@ export function getTodayQuizQuestions(): QuizQuestionItem[] {
   const shuffled = shuffleWithSeed(items, todayStr);
   return shuffled.slice(0, MAX_QUIZ_QUESTIONS);
 }
+
+/** True if there is a quiz for today and not every question has been rated (pending quiz). */
+export function hasPendingQuiz(): boolean {
+  const questions = getTodayQuizQuestions();
+  if (questions.length === 0) return false;
+  const ratings = getStoredRatings();
+  const allRated = questions.every((q) => ratings[q.docKey]?.[q.id] != null);
+  return !allRated;
+}

@@ -1,63 +1,20 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Play, Pause, StopCircle, Volume2 } from "lucide-react";
-
-// ~150 words/min ≈ 2.5 chars/word → ~12 chars/sec for average reading
-const CHARS_PER_SEC = 12;
-const PAUSE_BETWEEN_SENTENCES_MS = 280;
-
-function estimateDurationMs(text: string): number {
-  if (!text.trim()) return 0;
-  const chars = text.trim().length;
-  return (chars / CHARS_PER_SEC) * 1000;
-}
-
-function splitIntoChunks(text: string): string[] {
-  const trimmed = text.trim();
-  if (!trimmed) return [];
-  return trimmed
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-function pickBestVoice(synth: SpeechSynthesis): SpeechSynthesisVoice | null {
-  const voices = synth.getVoices();
-  const en = voices.filter((v) => v.lang.startsWith("en"));
-  if (en.length === 0) return voices[0] ?? null;
-  const preferred = en.find(
-    (v) =>
-      /google|microsoft|samantha|daniel|karen|alex|natural|premium/i.test(v.name)
-  );
-  if (preferred) return preferred;
-  const defaultEn = en.find((v) => v.default);
-  return defaultEn ?? en[0];
-}
+import { generateSpeech, isElevenLabsConfigured } from "../lib/elevenlabs";
 
 type Props = { textToRead: string };
 
 const TTSPanel = ({ textToRead }: Props) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const elapsedMsRef = useRef(0);
-  const totalMsRef = useRef(0);
+  const [error, setError] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const blobUrlsRef = useRef<string[]>([]);
+  const currentIndexRef = useRef(0);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const nextChunkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
-  const [voicesReady, setVoicesReady] = useState(false);
-
-  useEffect(() => {
-    if (!synth) return;
-    const onVoicesChanged = () => {
-      synth.getVoices();
-      setVoicesReady(true);
-    };
-    synth.addEventListener("voiceschanged", onVoicesChanged);
-    onVoicesChanged();
-    return () => {
-      synth.removeEventListener("voiceschanged", onVoicesChanged);
-    };
-  }, [synth]);
+  const urlsLengthRef = useRef(0);
 
   const stopProgressTimer = useCallback(() => {
     if (progressIntervalRef.current) {
@@ -66,139 +23,180 @@ const TTSPanel = ({ textToRead }: Props) => {
     }
   }, []);
 
-  const startProgressTimer = useCallback(() => {
+  const revokeUrls = useCallback(() => {
+    blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    blobUrlsRef.current = [];
+  }, []);
+
+  const handleStop = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.src = "";
+    }
     stopProgressTimer();
-    const start = Date.now() - elapsedMsRef.current;
-    progressIntervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - start;
-      elapsedMsRef.current = elapsed;
-      const total = totalMsRef.current;
-      if (total <= 0) return;
-      const p = Math.min(100, (elapsed / total) * 100);
-      setProgress(p);
-      if (p >= 100) stopProgressTimer();
-    }, 100);
-  }, [stopProgressTimer]);
+    revokeUrls();
+    currentIndexRef.current = 0;
+    setProgress(0);
+    setIsPlaying(false);
+    setIsPaused(false);
+  }, [stopProgressTimer, revokeUrls]);
 
   useEffect(() => {
     return () => {
-      if (nextChunkTimeoutRef.current) {
-        clearTimeout(nextChunkTimeoutRef.current);
-        nextChunkTimeoutRef.current = null;
-      }
       stopProgressTimer();
-      if (synth) synth.cancel();
+      revokeUrls();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
     };
-  }, [synth, stopProgressTimer]);
+  }, [stopProgressTimer, revokeUrls]);
 
-  const handlePlayPause = () => {
-    if (!synth) return;
+  const playNext = useCallback(
+    (urls: string[], index: number) => {
+      if (index >= urls.length) {
+        setProgress(100);
+        stopProgressTimer();
+        setIsPlaying(false);
+        setIsPaused(false);
+        return;
+      }
+      currentIndexRef.current = index;
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.src = urls[index]!;
+      audio.play().catch((e) => {
+        console.error("Audio play failed:", e);
+        setProgress(100);
+        setIsPlaying(false);
+      });
+    },
+    [stopProgressTimer]
+  );
+
+  const handlePlayPause = async () => {
+    if (!isElevenLabsConfigured()) {
+      setError("Add VITE_ELEVENLABS_API_KEY to .env for text-to-speech.");
+      return;
+    }
+
+    const trimmed = textToRead.trim();
+    if (!trimmed) return;
+
     if (isPlaying && !isPaused) {
-      synth.pause();
+      audioRef.current?.pause();
       stopProgressTimer();
       setIsPaused(true);
-    } else if (isPaused) {
-      synth.resume();
-      startProgressTimer();
+      return;
+    }
+
+    if (isPaused) {
+      await audioRef.current?.play();
+      const urls = blobUrlsRef.current;
+      const idx = currentIndexRef.current;
+      if (urls.length > 0 && audioRef.current) {
+        const startProgress = (idx / urls.length) * 100;
+        progressIntervalRef.current = setInterval(() => {
+          const a = audioRef.current;
+          if (!a || a.duration === 0 || !isFinite(a.duration)) return;
+          const chunkProgress = (a.currentTime / a.duration) * (100 / urls.length);
+          setProgress(Math.min(100, startProgress + chunkProgress));
+        }, 100);
+      }
       setIsPaused(false);
-    } else {
-      const trimmed = textToRead.trim();
-      if (!trimmed) return;
-      const chunks = splitIntoChunks(trimmed);
-      if (chunks.length === 0) return;
+      return;
+    }
 
-      totalMsRef.current =
-        estimateDurationMs(trimmed) + (chunks.length - 1) * PAUSE_BETWEEN_SENTENCES_MS;
-      elapsedMsRef.current = 0;
-      setProgress(0);
-      setIsPlaying(true);
-      setIsPaused(false);
+    setError(null);
+    setIsLoading(true);
+    handleStop();
 
-      const voice = voicesReady ? pickBestVoice(synth) : null;
-      const rate = 0.95;
-      const pitch = 1;
-
-      let index = 0;
-      function speakNext() {
-        if (index >= chunks.length) {
-          setProgress(100);
-          stopProgressTimer();
-          setIsPlaying(false);
-          setIsPaused(false);
-          return;
-        }
-        const utterance = new SpeechSynthesisUtterance(chunks[index]);
-        utterance.rate = rate;
-        utterance.pitch = pitch;
-        if (voice) utterance.voice = voice;
-        utterance.lang = "en-US";
-
-        utterance.onstart = () => {
-          if (index === 0) startProgressTimer();
-        };
-
-        utterance.onend = () => {
-          index += 1;
-          if (index < chunks.length) {
-            nextChunkTimeoutRef.current = setTimeout(
-              speakNext,
-              PAUSE_BETWEEN_SENTENCES_MS
-            );
-          } else {
-            setProgress(100);
-            stopProgressTimer();
-            setIsPlaying(false);
-            setIsPaused(false);
-          }
-        };
-
-        utterance.onerror = () => {
-          index += 1;
-          if (index < chunks.length) {
-            nextChunkTimeoutRef.current = setTimeout(speakNext, 100);
-          } else {
-            setProgress(100);
-            stopProgressTimer();
-            setIsPlaying(false);
-            setIsPaused(false);
-          }
-        };
-
-        synth.speak(utterance);
+    try {
+      const blobs = await generateSpeech(trimmed);
+      if (blobs.length === 0) {
+        setError("No audio generated.");
+        setIsLoading(false);
+        return;
       }
 
-      speakNext();
-    }
-  };
+      revokeUrls();
+      const urls = blobs.map((b) => URL.createObjectURL(b));
+      blobUrlsRef.current = urls;
+      currentIndexRef.current = 0;
 
-  const handleStop = () => {
-    if (nextChunkTimeoutRef.current) {
-      clearTimeout(nextChunkTimeoutRef.current);
-      nextChunkTimeoutRef.current = null;
-    }
-    if (synth) {
-      synth.cancel();
-      stopProgressTimer();
-      elapsedMsRef.current = 0;
-      totalMsRef.current = 0;
-      setProgress(0);
-      setIsPlaying(false);
+      const audio = new Audio();
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        stopProgressTimer();
+        const nextIdx = currentIndexRef.current + 1;
+        if (nextIdx < urls.length) {
+          playNext(urls, nextIdx);
+        } else {
+          setProgress(100);
+          setIsPlaying(false);
+          setIsPaused(false);
+        }
+      };
+
+      audio.onerror = () => {
+        stopProgressTimer();
+        setIsPlaying(false);
+        setIsPaused(false);
+      };
+
+      urlsLengthRef.current = urls.length;
+      audio.onplay = () => {
+        const total = urlsLengthRef.current;
+        if (total === 0) return;
+        progressIntervalRef.current = setInterval(() => {
+          const a = audioRef.current;
+          if (!a || a.duration === 0 || !isFinite(a.duration)) return;
+          const idx = currentIndexRef.current;
+          const chunkProgress = (a.currentTime / a.duration) * (100 / total);
+          setProgress(Math.min(100, (idx / total) * 100 + chunkProgress));
+        }, 100);
+      };
+
+      setIsLoading(false);
+      setIsPlaying(true);
       setIsPaused(false);
+      setProgress(0);
+      playNext(urls, 0);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "TTS failed.");
+      setIsLoading(false);
     }
   };
 
   const btnBase =
     "flex h-9 w-9 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-dark-sage-surface";
 
+  if (!isElevenLabsConfigured()) {
+    return (
+      <div className="flex items-center gap-4 rounded-xl bg-pale-sage/80 px-4 py-3 dark:bg-dark-sage-elevated/90">
+        <Volume2 className="h-5 w-5 shrink-0 text-deep-moss/50 dark:text-dark-moss/50" />
+        <p className="text-caption text-deep-moss/60 dark:text-dark-moss/60">
+          Add <code className="rounded bg-deep-moss/10 px-1 dark:bg-dark-moss/20">VITE_ELEVENLABS_API_KEY</code> to .env for text-to-speech.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-4 rounded-xl bg-pale-sage/80 px-4 py-3 dark:bg-dark-sage-elevated/90">
+      <audio ref={audioRef} />
       <button
         type="button"
         onClick={handlePlayPause}
-        className={`${btnBase} bg-soft-clay text-deep-moss hover:bg-soft-clay-hover focus:ring-soft-clay dark:bg-dark-clay dark:text-dark-sage dark:hover:opacity-90 dark:focus:ring-dark-clay`}
+        disabled={isLoading}
+        className={`${btnBase} bg-soft-clay text-deep-moss hover:bg-soft-clay-hover focus:ring-soft-clay dark:bg-dark-clay dark:text-dark-sage dark:hover:opacity-90 dark:focus:ring-dark-clay disabled:opacity-50`}
         aria-label={isPlaying && !isPaused ? "Pause" : "Play"}
       >
-        {isPlaying && !isPaused ? (
+        {isLoading ? (
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-deep-moss border-t-transparent dark:border-dark-sage dark:border-t-transparent" />
+        ) : isPlaying && !isPaused ? (
           <Pause className="h-5 w-5" />
         ) : (
           <Play className="h-5 w-5" />
@@ -207,19 +205,27 @@ const TTSPanel = ({ textToRead }: Props) => {
       <button
         type="button"
         onClick={handleStop}
-        className={`${btnBase} bg-deep-moss/15 text-deep-moss hover:bg-deep-moss/25 focus:ring-deep-moss/30 dark:bg-dark-moss/20 dark:text-dark-moss dark:hover:bg-dark-moss/30 dark:focus:ring-dark-moss/40`}
+        disabled={!isPlaying && !isPaused}
+        className={`${btnBase} bg-deep-moss/15 text-deep-moss hover:bg-deep-moss/25 focus:ring-deep-moss/30 dark:bg-dark-moss/20 dark:text-dark-moss dark:hover:bg-dark-moss/30 dark:focus:ring-dark-moss/40 disabled:opacity-40`}
         aria-label="Stop"
       >
         <StopCircle className="h-5 w-5" />
       </button>
-      <div className="flex flex-1 items-center gap-2">
-        <Volume2 className="h-5 w-5 shrink-0 text-deep-moss/50 dark:text-dark-moss/50" />
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-deep-moss/20 dark:bg-dark-moss/30">
-          <div
-            className="h-full rounded-full bg-soft-clay dark:bg-dark-clay transition-[width] duration-150 ease-out"
-            style={{ width: `${progress}%` }}
-          />
+      <div className="flex flex-1 min-w-0 flex-col gap-0.5">
+        <div className="flex items-center gap-2">
+          <Volume2 className="h-5 w-5 shrink-0 text-deep-moss/50 dark:text-dark-moss/50" />
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-deep-moss/20 dark:bg-dark-moss/30">
+            <div
+              className="h-full rounded-full bg-soft-clay dark:bg-dark-clay transition-[width] duration-150 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
+        {error && (
+          <p className="text-caption text-red-600 dark:text-red-400 truncate" title={error}>
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );

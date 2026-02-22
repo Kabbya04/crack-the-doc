@@ -10,7 +10,12 @@ import {
 import type { RecallRating } from "../types/session";
 import { CheckCircle2, MinusCircle, XCircle, ClipboardList, ChevronLeft, ChevronRight } from "lucide-react";
 
-export default function TodayQuizCard() {
+type TodayQuizCardProps = {
+  onQuizActivity?: () => void;
+  onAllRated?: () => void;
+};
+
+export default function TodayQuizCard({ onQuizActivity, onAllRated }: TodayQuizCardProps) {
   const [questions] = useState<QuizQuestionItem[]>(() => getTodayQuizQuestions());
   const [currentIndex, setCurrentIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -23,12 +28,22 @@ export default function TodayQuizCard() {
   const storedRatings = getStoredRatings()[item.docKey] ?? {};
   const displayRating = rating ?? storedRatings[item.id] ?? null;
 
+  const handleReveal = () => {
+    setRevealed(true);
+    onQuizActivity?.();
+  };
+
   const handleRate = (r: RecallRating) => {
     setRating(r);
-    setRatedForQuestion((prev) => new Set(prev).add(currentIndex));
+    setRatedForQuestion((prev) => {
+      const next = new Set(prev).add(currentIndex);
+      if (next.size === questions.length) onAllRated?.();
+      return next;
+    });
     const next = { ...storedRatings, [item.id]: r };
     setStoredRatings(item.docKey, next);
     recordActivity();
+    onQuizActivity?.();
   };
 
   const goPrev = () => {
@@ -65,7 +80,7 @@ export default function TodayQuizCard() {
       {!revealed ? (
         <button
           type="button"
-          onClick={() => setRevealed(true)}
+          onClick={handleReveal}
           className="mt-3 rounded-xl bg-deep-moss/10 px-4 py-2 text-caption font-medium text-deep-moss hover:bg-deep-moss/15 dark:bg-dark-moss/15 dark:text-dark-moss dark:hover:bg-dark-moss/20"
         >
           Reveal answer

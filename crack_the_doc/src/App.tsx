@@ -2,22 +2,39 @@ import { useState } from "react";
 import Home from "./pages/Home";
 import Library from "./pages/Library";
 import Focus from "./pages/Focus";
+import QuizPage from "./pages/QuizPage";
 import { useTheme } from "./contexts/ThemeContext";
 import { SessionProvider, useSession } from "./contexts/SessionContext";
-import { BookOpen, Moon, Sun, Library as LibraryIcon, Crosshair, Flame, Award } from "lucide-react";
-import { getStreak, isMastered } from "./lib/storage";
+import { BookOpen, Moon, Sun, Library as LibraryIcon, Crosshair, Flame, Award, ClipboardList } from "lucide-react";
+import { getStreak, isMastered, hasPendingQuiz } from "./lib/storage";
 
-type Page = "study" | "library" | "focus";
+type Page = "study" | "library" | "focus" | "quiz";
 
-function AppNav({ currentPage, setPage }: { currentPage: Page; setPage: (p: Page) => void }) {
+function AppNav({
+  currentPage,
+  setPage,
+  quizInProgress,
+  onNavAttempt,
+}: {
+  currentPage: Page;
+  setPage: (p: Page) => void;
+  quizInProgress: boolean;
+  onNavAttempt: (target: Page) => void;
+}) {
   const { document, analysis } = useSession();
   const hasSession = Boolean(document && (analysis.summary || analysis.keyPoints.length > 0));
+  const pendingQuiz = hasPendingQuiz();
+
+  const handleNav = (target: Page) => {
+    if (quizInProgress) onNavAttempt(target);
+    else setPage(target);
+  };
 
   return (
     <nav className="hidden sm:flex items-center gap-0.5" aria-label="Primary">
       <button
         type="button"
-        onClick={() => setPage("study")}
+        onClick={() => handleNav("study")}
         className={`rounded-lg px-3 py-2 text-caption font-medium transition-colors duration-150 ${
           currentPage === "study"
             ? "text-deep-moss bg-deep-moss/10 dark:text-dark-moss dark:bg-dark-moss/15"
@@ -28,7 +45,7 @@ function AppNav({ currentPage, setPage }: { currentPage: Page; setPage: (p: Page
       </button>
       <button
         type="button"
-        onClick={() => hasSession && setPage("library")}
+        onClick={() => hasSession && handleNav("library")}
         disabled={!hasSession}
         className={`rounded-lg px-3 py-2 text-caption font-medium transition-colors duration-150 ${
           currentPage === "library"
@@ -46,7 +63,7 @@ function AppNav({ currentPage, setPage }: { currentPage: Page; setPage: (p: Page
       </button>
       <button
         type="button"
-        onClick={() => hasSession && setPage("focus")}
+        onClick={() => hasSession && handleNav("focus")}
         disabled={!hasSession}
         className={`rounded-lg px-3 py-2 text-caption font-medium transition-colors duration-150 ${
           currentPage === "focus"
@@ -61,6 +78,26 @@ function AppNav({ currentPage, setPage }: { currentPage: Page; setPage: (p: Page
           <Crosshair className="h-4 w-4" />
           Focus
         </span>
+      </button>
+      <button
+        type="button"
+        onClick={() => handleNav("quiz")}
+        className={`rounded-lg px-3 py-2 text-caption font-medium transition-colors duration-150 flex items-center gap-1.5 ${
+          currentPage === "quiz"
+            ? "text-deep-moss bg-deep-moss/10 dark:text-dark-moss dark:bg-dark-moss/15"
+            : "text-deep-moss/80 hover:text-deep-moss dark:text-dark-moss/80 dark:hover:text-dark-moss"
+        }`}
+        title="Daily quiz"
+      >
+        <ClipboardList className="h-4 w-4" />
+        Quiz
+        {pendingQuiz && (
+          <span
+            className="h-2 w-2 shrink-0 rounded-full bg-soft-clay dark:bg-dark-clay"
+            aria-label="Pending quiz"
+            title="Quiz not completed today"
+          />
+        )}
       </button>
     </nav>
   );
@@ -98,16 +135,73 @@ function StreakAndMastery() {
 
 function AppContent() {
   const [page, setPage] = useState<Page>("study");
+  const [quizInProgress, setQuizInProgress] = useState(false);
+  const [leaveModalTarget, setLeaveModalTarget] = useState<{ page?: Page; newSession?: true } | null>(null);
   const { theme, toggleTheme } = useTheme();
   const { resetSession } = useSession();
 
+  const handleNavAttempt = (target: Page) => {
+    setLeaveModalTarget({ page: target });
+  };
+
   const handleNewSession = () => {
-    resetSession();
-    setPage("study");
+    if (quizInProgress) setLeaveModalTarget({ newSession: true });
+    else {
+      resetSession();
+      setPage("study");
+    }
+  };
+
+  const confirmLeaveQuiz = () => {
+    setQuizInProgress(false);
+    if (leaveModalTarget?.newSession) {
+      resetSession();
+      setPage("study");
+    } else if (leaveModalTarget?.page) {
+      setPage(leaveModalTarget.page);
+    }
+    setLeaveModalTarget(null);
+  };
+
+  const cancelLeaveQuiz = () => {
+    setLeaveModalTarget(null);
   };
 
   return (
     <div className="min-h-screen bg-pale-sage text-deep-moss transition-colors duration-200 dark:bg-dark-sage dark:text-dark-moss">
+      {leaveModalTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-deep-moss/20 dark:bg-dark-moss/20"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="leave-quiz-title"
+        >
+          <div className="mx-4 max-w-md rounded-2xl border border-deep-moss/15 bg-white p-6 shadow-soft-lg dark:border-dark-moss/20 dark:bg-dark-sage-surface dark:shadow-soft-dark">
+            <h2 id="leave-quiz-title" className="text-title font-semibold text-deep-moss dark:text-dark-moss">
+              Leave quiz?
+            </h2>
+            <p className="mt-2 text-body text-deep-moss/80 dark:text-dark-moss/80">
+              If you leave, the quiz will be terminated and you&apos;ll need to start from the beginning. Do you want to leave?
+            </p>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={cancelLeaveQuiz}
+                className="rounded-xl border border-deep-moss/20 px-4 py-2.5 text-caption font-semibold text-deep-moss hover:bg-deep-moss/5 dark:border-dark-moss/30 dark:text-dark-moss dark:hover:bg-dark-moss/10"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmLeaveQuiz}
+                className="rounded-xl bg-soft-clay px-4 py-2.5 text-caption font-semibold text-deep-moss shadow-soft hover:bg-soft-clay-hover dark:bg-dark-clay dark:text-deep-moss dark:hover:opacity-90"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <header className="sticky top-0 z-40 border-b border-deep-moss/[0.12] bg-pale-sage/95 backdrop-blur-md dark:border-dark-moss/20 dark:bg-dark-sage/95 shadow-soft dark:shadow-soft-dark">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
@@ -119,7 +213,12 @@ function AppContent() {
             </span>
           </div>
 
-          <AppNav currentPage={page} setPage={setPage} />
+          <AppNav
+            currentPage={page}
+            setPage={setPage}
+            quizInProgress={quizInProgress}
+            onNavAttempt={handleNavAttempt}
+          />
 
           <div className="flex items-center gap-3">
             <StreakAndMastery />
@@ -147,8 +246,14 @@ function AppContent() {
       </header>
       <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {page === "study" && <Home />}
-        {page === "library" && <Library onEnterFocus={() => setPage("focus")} />}
+        {page === "library" && <Library onEnterFocus={() => (quizInProgress ? handleNavAttempt("focus") : setPage("focus"))} />}
         {page === "focus" && <Focus />}
+        {page === "quiz" && (
+          <QuizPage
+            onQuizStarted={() => setQuizInProgress(true)}
+            onQuizCompleted={() => setQuizInProgress(false)}
+          />
+        )}
       </main>
     </div>
   );

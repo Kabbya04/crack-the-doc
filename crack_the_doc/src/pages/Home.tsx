@@ -4,7 +4,6 @@ import ChatPanel from "../components/ChatPanel";
 import AnalysisPanel from "../components/AnalysisPanel";
 import PreviewColumn from "../components/PreviewColumn";
 import DocumentPreviewModal from "../components/DocumentPreviewModal";
-import TodayQuizCard from "../components/TodayQuizCard";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
 import { getAnalysis } from "../lib/groq";
@@ -180,7 +179,6 @@ const Home = () => {
   if (!document) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] flex-col gap-6 py-6">
-        <TodayQuizCard />
         <UploadForm onFileUpload={handleFileUpload} isLoading={isLoading} />
       </div>
     );
@@ -189,7 +187,6 @@ const Home = () => {
   return (
     <>
       <div className="flex min-h-[calc(100vh-4rem)] flex-col gap-4 overflow-y-auto py-4 md:gap-4 md:py-6">
-        <TodayQuizCard />
         <div className="flex min-h-[420px] shrink-0 flex-col gap-4 md:flex-row md:gap-4 md:h-[min(70vh,720px)]">
           <section
             className="flex min-h-[320px] min-w-0 flex-1 flex-col md:min-h-0 md:h-full"

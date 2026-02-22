@@ -26,7 +26,7 @@ A web-based document analysis platform that uses an LLM to summarize documents, 
 
 ## Overview
 
-**Crack The Doc** lets you upload documents and get AI-powered study aids in seconds. The app uses the [Groq](https://groq.com/) API (LLaMA 3.3 70B) to produce summaries, key point definitions, and Q&A from your content. You can chat with a document-aware assistant and use built-in text-to-speech for summaries and key points.
+**Crack The Doc** lets you upload documents and get AI-powered study aids in seconds. The app uses the [Groq](https://groq.com/) API (LLaMA 3.3 70B) to produce summaries, key point definitions, and Q&A from your content. You can chat with a document-aware assistant, use optional text-to-speech (ElevenLabs) for summaries and key points, and reinforce learning with a daily quiz and self-assessment tools.
 
 ---
 
@@ -34,12 +34,17 @@ A web-based document analysis platform that uses an LLM to summarize documents, 
 
 | Feature | Description |
 |--------|-------------|
+| **Study** | Upload a document; get a summary, key points, and generated questions. Chat with the doc, use “Explain to a 10-year-old,” rate your recall, and save a one-line takeaway. |
+| **Library** | Self-assessment center: rate key points, practice “teach me back,” and see a confidence heatmap. Enter Focus mode from here. |
+| **Focus** | Distraction-free view of summary and key points. |
+| **Daily quiz** | Dedicated Quiz page with multiple questions from docs you studied yesterday (or last doc as fallback). A dot on the nav indicates a pending quiz; once started, leaving the page shows a confirmation (quiz terminates and must be restarted). |
 | **Document summarization** | Concise, coherent summaries that capture main sections and key details. |
 | **Key point extraction** | Headlines and definitions for important concepts, with document-specific context. |
 | **Question generation** | Short and broad questions with answers derived from the document. |
 | **Document-aware chat** | Ask questions about your document; answers are grounded in the uploaded content. |
-| **Text-to-speech (TTS)** | Play summaries and key points using the browser’s Web Speech API. |
+| **Text-to-speech (TTS)** | Optional [ElevenLabs](https://elevenlabs.io/) TTS for summaries and key points (configurable voice). |
 | **Document preview** | View PDFs and rendered content in a modal. |
+| **Doc mastery & streak** | Mark a doc as mastered and track a daily streak (stored locally). |
 | **Dark / light theme** | Theme toggle with persistent preference. |
 
 ---
@@ -81,13 +86,13 @@ npm install
 
 ### 3. Configure environment
 
-Create a `.env` file in the `crack_the_doc` directory:
+Copy `.env.example` to `.env` in the `crack_the_doc` directory and set at least the Groq key:
 
 ```env
 VITE_GROQ_API_KEY=your_groq_api_key_here
 ```
 
-Get an API key from the [Groq Console](https://console.groq.com/).
+Get an API key from the [Groq Console](https://console.groq.com/). For optional text-to-speech, add `VITE_ELEVENLABS_API_KEY` (and optionally `VITE_ELEVENLABS_VOICE_ID`); see [Environment Variables](#environment-variables).
 
 ### 4. Run the development server
 
@@ -104,6 +109,8 @@ Open the URL shown in the terminal (e.g. `http://localhost:5173`) in your browse
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `VITE_GROQ_API_KEY` | Yes | Groq API key for LLM summarization, key points, questions, and chat. |
+| `VITE_ELEVENLABS_API_KEY` | No | ElevenLabs API key for text-to-speech. If omitted, TTS is disabled. |
+| `VITE_ELEVENLABS_VOICE_ID` | No | ElevenLabs voice ID (default: Rachel). See [voice library](https://elevenlabs.io/voice-library). |
 
 ---
 
@@ -125,10 +132,10 @@ crack-the-doc/
 ├── crack_the_doc/          # Frontend application
 │   ├── public/             # Static assets (e.g. PDF worker)
 │   ├── src/
-│   │   ├── components/     # UI components (upload, chat, analysis, TTS, etc.)
-│   │   ├── contexts/       # React context (theme)
-│   │   ├── lib/            # Groq client, utilities
-│   │   ├── pages/          # Page components
+│   │   ├── components/     # UI components (upload, chat, analysis, TTS, TodayQuizCard, etc.)
+│   │   ├── contexts/       # Theme, Session (document + analysis state)
+│   │   ├── lib/            # Groq client, ElevenLabs TTS, storage (ratings, streak, quiz)
+│   │   ├── pages/          # Home (Study), Library, Focus, QuizPage
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── index.html
@@ -137,6 +144,7 @@ crack-the-doc/
 │   ├── tsconfig.json
 │   └── vite.config.ts
 ├── documentation/          # Project docs and design notes
+├── todo.md                 # Pending work (auth, storage, optional features)
 └── README.md
 ```
 
