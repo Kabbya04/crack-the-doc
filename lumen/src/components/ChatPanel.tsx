@@ -21,7 +21,7 @@ type Message = { sender: "ai" | "user"; text: string };
 
 const INITIAL_AI_MESSAGE: Message = {
   sender: "ai",
-  text: "Hello! I'm DocWiz, your guide for this document. Ask me anything about the material.",
+  text: "Hello! I'm Lumen, your guide for this document. Ask me anything about the material.",
 };
 
 const ChatPanel = ({ fileName, summary, keyPoints, fullDocument, isAnalysisReady }: Props) => {

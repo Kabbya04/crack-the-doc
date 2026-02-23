@@ -1,4 +1,4 @@
-import Groq from "groq-sdk";
+import Groq from "groq-sdk/index.mjs";
 
 const apiKey = import.meta.env.VITE_GROQ_API_KEY;
 
@@ -16,8 +16,8 @@ const CHAT_MODEL = "openai/gpt-oss-120b";
 // --- Token efficiency: max chars for full document in chat (avoids huge context; future: retrieval-based chunks) ---
 const MAX_CHAT_DOCUMENT_CHARS = 12_000;
 
-// --- DocWiz system prompt (short; study assistant) ---
-const DOCWIZ_SYSTEM_PROMPT = `You are DocWiz, a study assistant for the document the user is studying.
+// --- Lumen system prompt (short; study assistant) ---
+const LUMEN_SYSTEM_PROMPT = `You are Lumen, a study assistant for the document the user is studying.
 Be clear, helpful, and concise. Answer only from the provided context. If off-topic, say you can only help with this document.
 Reply in plain text; use bullets or code blocks when helpful. Do not output JSON.`;
 
@@ -68,7 +68,7 @@ function buildChatMessages(
     content: `Context for the user's document. Use it to answer. Do not repeat it.\n\n---\n\n${contextContent}`,
   };
   return [
-    { role: "system", content: DOCWIZ_SYSTEM_PROMPT },
+    { role: "system", content: LUMEN_SYSTEM_PROMPT },
     documentMessage,
     ...conversationHistory,
     { role: "user", content: newUserMessage },

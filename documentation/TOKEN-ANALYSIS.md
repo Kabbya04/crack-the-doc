@@ -1,4 +1,4 @@
-# Token Usage Analysis — Crack The Doc
+# Token Usage Analysis — Lumen
 
 This document analyzes how tokens are consumed across the platform, where efficiency is lost, and how we can reduce usage for a later token-efficiency pass.
 
@@ -31,7 +31,7 @@ Each user message triggers one streaming completion:
 |--------------------------|------------------------|--------------------------|-------------|
 | `streamChatbotResponse()`| System (~150) + **full document** + **full conversation history** + new user message | Streamed plain text | Answer question |
 
-- **Input**: System prompt (DocWiz rules) + one “document” user message containing the **full document** + all prior user/assistant turns + the new user message.
+- **Input**: System prompt (Lumen rules) + one “document” user message containing the **full document** + all prior user/assistant turns + the new user message.
 - **Output**: Plain text stream (no JSON).
 - **Model**: Same, `llama-3.3-70b-versatile`.
 

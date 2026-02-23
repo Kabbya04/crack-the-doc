@@ -209,7 +209,7 @@ function AppContent() {
               <BookOpen className="h-5 w-5" aria-hidden />
             </div>
             <span className="text-title font-semibold tracking-tight text-deep-moss dark:text-dark-moss">
-              Crack The Doc
+              Lumen
             </span>
           </div>
 

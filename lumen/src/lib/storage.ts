@@ -3,7 +3,7 @@
  * All keys are prefixed to avoid collisions.
  */
 
-const PREFIX = "crack-the-doc-";
+const PREFIX = "lumen-";
 
 export function getDocKey(name: string, textLength: number): string {
   return `${name}|${textLength}`;

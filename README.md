@@ -1,4 +1,4 @@
-# Crack The Doc
+# Lumen
 
 [![React](https://img.shields.io/badge/React-18.2-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -26,7 +26,7 @@ A web-based document analysis platform that uses an LLM to summarize documents, 
 
 ## Overview
 
-**Crack The Doc** lets you upload documents and get AI-powered study aids in seconds. The app uses the [Groq](https://groq.com/) API (LLaMA 3.3 70B) to produce summaries, key point definitions, and Q&A from your content. You can chat with a document-aware assistant, use optional text-to-speech (ElevenLabs) for summaries and key points, and reinforce learning with a daily quiz and self-assessment tools.
+**Lumen** lets you upload documents and get AI-powered study aids in seconds. The app uses the [Groq](https://groq.com/) API (LLaMA 3.3 70B) to produce summaries, key point definitions, and Q&A from your content. You can chat with a document-aware assistant, use optional text-to-speech (ElevenLabs) for summaries and key points, and reinforce learning with a daily quiz and self-assessment tools.
 
 ---
 
@@ -71,8 +71,8 @@ A web-based document analysis platform that uses an LLM to summarize documents, 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/crack-the-doc.git
-cd crack-the-doc
+git clone https://github.com/your-username/lumen.git
+cd lumen
 ```
 
 ### 2. Install dependencies
@@ -128,7 +128,7 @@ Open the URL shown in the terminal (e.g. `http://localhost:5173`) in your browse
 ## Project Structure
 
 ```
-crack-the-doc/
+lumen/
 ├── crack_the_doc/          # Frontend application
 │   ├── public/             # Static assets (e.g. PDF worker)
 │   ├── src/
