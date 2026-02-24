@@ -20,7 +20,8 @@ export default {
         "dark-clay": "#d4b87a",
       },
       fontFamily: {
-        sans: ["DM Sans", "system-ui", "sans-serif"],
+        sans: ["Syne", "system-ui", "sans-serif"],
+        display: ["Space Grotesk", "system-ui", "sans-serif"],
       },
       fontSize: {
         "display-sm": ["2rem", { lineHeight: "1.2" }],

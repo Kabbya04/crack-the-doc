@@ -1,5 +1,5 @@
 /* Evolved design system: Pale Sage, Deep Moss, Soft Clay; dark = Smoked Olive */
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:ital,wght@0,300..700;1,300..700&family=Syne:wght@400..800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -14,6 +14,12 @@
   }
   html.dark body {
     @apply bg-dark-sage text-dark-moss;
+  }
+  /* Display headings use Syne */
+  .text-display-sm,
+  .text-display-md,
+  .text-title {
+    @apply font-display;
   }
 }
 

@@ -104,13 +104,13 @@ export function PDFViewerShared({
 
 const HtmlViewer = ({ htmlContent }: { htmlContent: string }) => (
   <div
-    className="prose prose-deep-moss dark:prose-invert max-w-none text-body prose-headings:text-title prose-headings:font-semibold prose-p:text-deep-moss/90 dark:prose-headings:text-dark-moss dark:prose-p:text-dark-moss/90"
+    className="prose prose-deep-moss dark:prose-invert max-w-none text-body prose-headings:text-title prose-headings:font-display prose-headings:font-semibold prose-p:text-deep-moss/90 dark:prose-headings:text-dark-moss dark:prose-p:text-dark-moss/90"
     dangerouslySetInnerHTML={{ __html: htmlContent }}
   />
 );
 
 const MarkdownViewer = ({ markdownContent }: { markdownContent: string }) => (
-  <article className="prose prose-deep-moss dark:prose-invert max-w-none text-body prose-headings:text-title prose-headings:font-semibold prose-p:text-deep-moss/90 dark:prose-headings:text-dark-moss dark:prose-p:text-dark-moss/90">
+  <article className="prose prose-deep-moss dark:prose-invert max-w-none text-body prose-headings:text-title prose-headings:font-display prose-headings:font-semibold prose-p:text-deep-moss/90 dark:prose-headings:text-dark-moss dark:prose-p:text-dark-moss/90">
     <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdownContent}</ReactMarkdown>
   </article>
 );
